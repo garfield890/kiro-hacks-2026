@@ -10,7 +10,7 @@
   padding: 24px 32px 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 16px;
   flex-wrap: wrap;
 }
@@ -53,6 +53,11 @@
   gap: 40px;
 }
 
+/* When no content loaded, stretch main to fill and center the upload zone */
+.main.empty {
+  justify-content: center;
+}
+
 .uploadSection {
   width: 100%;
   display: flex;
@@ -84,6 +89,10 @@
   padding: 0 4px;
 }
 
+.searchArea {
+  width: 100%;
+}
+
 .hint {
   font-size: 0.7rem;
   color: var(--dim);
@@ -91,8 +100,13 @@
 }
 
 .emptyState {
-  color: var(--dim);
-  font-size: 0.9rem;
-  text-align: center;
-  margin-top: 16px;
+  display: contents;
+}
+
+.footer {
+  width: 100%;
+  padding: 16px 32px;
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
 }

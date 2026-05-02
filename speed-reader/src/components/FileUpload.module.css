@@ -1,7 +1,7 @@
 .dropzone {
-  width: 100%;
-  max-width: 560px;
-  min-height: 140px;
+  width: min(360px, 80vw);
+  height: min(360px, 80vw);
+  aspect-ratio: 1;
   border: 2px dashed var(--border);
   border-radius: 16px;
   background: var(--surface);
@@ -70,6 +70,55 @@
   border-top-color: var(--fg);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
+}
+
+.compact {
+  width: 100%;
+  height: auto;
+  aspect-ratio: unset;
+  padding: 10px 20px;
+  border-radius: 8px;
+  min-height: unset;
+}
+
+.compact .idle {
+  flex-direction: row;
+  gap: 10px;
+  padding: 0;
+}
+
+.compact .icon {
+  margin-bottom: 0;
+}
+
+.compact .secondary {
+  display: none;
+}
+
+/* Stable label swap — both texts sit in the same box, opacity toggles */
+.labelSwap {
+  position: relative;
+  /* width is fixed to the wider of the two strings so layout never shifts.
+     We use the hover label as the sizing element since it's typically longer. */
+  display: grid;
+}
+
+/* Both labels occupy the same grid cell */
+.labelSwap .primary {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 340px;
+}
+
+.labelOver {
+  /* sits on top, invisible by default */
+  pointer-events: none;
+}
+
+.labelHidden {
+  opacity: 0;
 }
 
 @keyframes spin {

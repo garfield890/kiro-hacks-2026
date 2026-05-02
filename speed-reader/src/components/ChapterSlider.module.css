@@ -27,11 +27,43 @@
   font-variant-numeric: tabular-nums;
 }
 
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.skipBtn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--fg);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.skipBtn:hover:not(:disabled) {
+  border-color: var(--fg);
+}
+
+.skipBtn:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
 .trackOuter {
+  flex: 1;
   position: relative;
   padding: 16px 0;
   cursor: pointer;
   outline: none;
+  user-select: none;
 }
 
 .trackOuter:focus-visible .track {

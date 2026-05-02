@@ -4,6 +4,7 @@ import { WordDisplay } from './components/WordDisplay';
 import { ChapterSlider } from './components/ChapterSlider';
 import { Controls } from './components/Controls';
 import { ThemeToggle } from './components/ThemeToggle';
+import { SearchBar } from './components/SearchBar';
 import { useSpeedReader } from './hooks/useSpeedReader';
 import { useTheme } from './hooks/useTheme';
 import { parsePDF } from './utils/pdfParser';
@@ -74,17 +75,13 @@ export default function App() {
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <h1 className={styles.title}>r e a d e r</h1>
-          {fileName && <span className={styles.fileName}>{fileName}</span>}
-        </div>
-        <ThemeToggle preference={preference} onChange={setPreference} />
+        <h1 className={styles.title}>r e a d e r</h1>
       </header>
 
-      <main className={styles.main}>
+      <main className={`${styles.main} ${!hasContent ? styles.empty : ''}`}>
         <section className={styles.uploadSection}>
-          <FileUpload onFile={handleFile} loading={loading} />
-          {error && <p className={styles.error}>{error}</p>}
+          <FileUpload onFile={handleFile} loading={loading} compact={hasContent} fileName={fileName} />
+          {hasContent && error && <p className={styles.error}>{error}</p>}
         </section>
 
         {hasContent && (
@@ -110,6 +107,15 @@ export default function App() {
               disabled={!hasContent}
             />
 
+            <div className={styles.searchArea}>
+              <SearchBar
+                allWords={allWords}
+                sections={sections}
+                onSeek={seek}
+                onPause={stop}
+              />
+            </div>
+
             <p className={styles.hint}>
               Space to play/pause · ← → to step · Shift+← → to jump 10
             </p>
@@ -118,10 +124,14 @@ export default function App() {
 
         {!hasContent && !loading && (
           <div className={styles.emptyState}>
-            <p>Upload a PDF or EPUB to start reading at speed.</p>
+            {error && <p className={styles.error}>{error}</p>}
           </div>
         )}
       </main>
+
+      <footer className={styles.footer}>
+        <ThemeToggle preference={preference} onChange={setPreference} />
+      </footer>
     </div>
   );
 }

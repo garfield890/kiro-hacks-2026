@@ -86,6 +86,7 @@ export function ChapterSlider({ sections, currentIndex, totalWords, onSeek, isPl
 
   function onMouseDown(e) {
     dragging.current = true;
+    document.body.style.userSelect = 'none';
     onSeek(getIndexFromX(e.clientX));
     window.addEventListener('mousemove', onWindowMouseMove);
     window.addEventListener('mouseup', onWindowMouseUp);
@@ -97,6 +98,7 @@ export function ChapterSlider({ sections, currentIndex, totalWords, onSeek, isPl
 
   function onWindowMouseUp() {
     dragging.current = false;
+    document.body.style.userSelect = '';
     window.removeEventListener('mousemove', onWindowMouseMove);
     window.removeEventListener('mouseup', onWindowMouseUp);
   }
@@ -110,14 +112,36 @@ export function ChapterSlider({ sections, currentIndex, totalWords, onSeek, isPl
 
   const progress = totalWords > 1 ? currentIndex / (totalWords - 1) : 0;
 
-  // Current section name
+  // Current section index
+  let currentSectionIdx = 0;
   let currentSection = '';
   for (let i = chapterBoundaries.length - 1; i >= 0; i--) {
     if (currentIndex >= chapterBoundaries[i].index) {
+      currentSectionIdx = i;
       currentSection = chapterBoundaries[i].title;
       break;
     }
   }
+
+  function skipPrevChapter() {
+    // If we're more than 3 words into the current chapter, go to its start.
+    // If we're near the start already, go to the previous chapter.
+    const chapterStart = chapterBoundaries[currentSectionIdx].index;
+    if (currentIndex - chapterStart > 3 && currentSectionIdx > 0) {
+      onSeek(chapterStart);
+    } else {
+      const prev = chapterBoundaries[currentSectionIdx - 1];
+      if (prev) onSeek(prev.index);
+    }
+  }
+
+  function skipNextChapter() {
+    const next = chapterBoundaries[currentSectionIdx + 1];
+    if (next) onSeek(next.index);
+  }
+
+  const canGoPrev = currentSectionIdx > 0 || currentIndex > chapterBoundaries[0]?.index + 3;
+  const canGoNext = currentSectionIdx < chapterBoundaries.length - 1;
 
   return (
     <div className={styles.wrapper}>
@@ -129,69 +153,84 @@ export function ChapterSlider({ sections, currentIndex, totalWords, onSeek, isPl
         </span>
       </div>
 
-      {/* Track */}
-      <div
-        className={styles.trackOuter}
-        ref={trackRef}
-        onClick={handleTrackClick}
-        onMouseDown={onMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        role="slider"
-        aria-valuemin={0}
-        aria-valuemax={totalWords - 1}
-        aria-valuenow={currentIndex}
-        aria-label="Reading position"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'ArrowRight') onSeek(Math.min(currentIndex + 1, totalWords - 1));
-          if (e.key === 'ArrowLeft') onSeek(Math.max(currentIndex - 1, 0));
-          if (e.key === 'ArrowRight' && e.shiftKey) onSeek(Math.min(currentIndex + 10, totalWords - 1));
-          if (e.key === 'ArrowLeft' && e.shiftKey) onSeek(Math.max(currentIndex - 10, 0));
-        }}
-      >
-        <div className={styles.track}>
-          {/* Filled portion */}
-          <div
-            className={styles.fill}
-            style={{ width: `${progress * 100}%` }}
-          />
+      {/* Slider row with skip buttons */}
+      <div className={styles.sliderRow}>
+        <button
+          className={styles.skipBtn}
+          onClick={skipPrevChapter}
+          disabled={!canGoPrev}
+          aria-label="Previous chapter"
+          title="Previous chapter"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="19,5 9,12 19,19" />
+            <rect x="5" y="5" width="3" height="14" rx="1" />
+          </svg>
+        </button>
 
-          {/* Chapter tick marks */}
-          {chapterBoundaries.map((ch, i) => {
-            if (i === 0) return null; // skip start
-            const pct = totalWords > 1 ? (ch.index / (totalWords - 1)) * 100 : 0;
-            return (
-              <div
-                key={i}
-                className={`${styles.tick} ${hoveredTick === i ? styles.tickHovered : ''}`}
-                style={{ left: `${pct}%` }}
-                onMouseEnter={() => setHoveredTick(i)}
-                onMouseLeave={() => setHoveredTick(null)}
-                title={ch.title}
-              >
-                <div className={styles.tickLine} />
-                <div className={styles.tickLabel}>{ch.title}</div>
-              </div>
-            );
-          })}
+        <div
+          className={styles.trackOuter}
+          ref={trackRef}
+          onClick={handleTrackClick}
+          onMouseDown={onMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          role="slider"
+          aria-valuemin={0}
+          aria-valuemax={totalWords - 1}
+          aria-valuenow={currentIndex}
+          aria-label="Reading position"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowRight') onSeek(Math.min(currentIndex + 1, totalWords - 1));
+            if (e.key === 'ArrowLeft') onSeek(Math.max(currentIndex - 1, 0));
+            if (e.key === 'ArrowRight' && e.shiftKey) onSeek(Math.min(currentIndex + 10, totalWords - 1));
+            if (e.key === 'ArrowLeft' && e.shiftKey) onSeek(Math.max(currentIndex - 10, 0));
+          }}
+        >
+          <div className={styles.track}>
+            <div className={styles.fill} style={{ width: `${progress * 100}%` }} />
 
-          {/* Thumb */}
-          <div
-            className={styles.thumb}
-            style={{ left: `${progress * 100}%` }}
-          />
+            {chapterBoundaries.map((ch, i) => {
+              if (i === 0) return null;
+              const pct = totalWords > 1 ? (ch.index / (totalWords - 1)) * 100 : 0;
+              return (
+                <div
+                  key={i}
+                  className={`${styles.tick} ${hoveredTick === i ? styles.tickHovered : ''}`}
+                  style={{ left: `${pct}%` }}
+                  onMouseEnter={() => setHoveredTick(i)}
+                  onMouseLeave={() => setHoveredTick(null)}
+                  title={ch.title}
+                >
+                  <div className={styles.tickLine} />
+                  <div className={styles.tickLabel}>{ch.title}</div>
+                </div>
+              );
+            })}
+
+            <div className={styles.thumb} style={{ left: `${progress * 100}%` }} />
+          </div>
+
+          {tooltip && (
+            <div className={styles.tooltip} style={{ left: `${tooltip.x}px` }}>
+              {tooltip.label}
+            </div>
+          )}
         </div>
 
-        {/* Hover tooltip */}
-        {tooltip && (
-          <div
-            className={styles.tooltip}
-            style={{ left: `${tooltip.x}px` }}
-          >
-            {tooltip.label}
-          </div>
-        )}
+        <button
+          className={styles.skipBtn}
+          onClick={skipNextChapter}
+          disabled={!canGoNext}
+          aria-label="Next chapter"
+          title="Next chapter"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5,5 15,12 5,19" />
+            <rect x="16" y="5" width="3" height="14" rx="1" />
+          </svg>
+        </button>
       </div>
     </div>
   );

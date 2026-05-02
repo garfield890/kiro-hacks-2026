@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react';
 import styles from './FileUpload.module.css';
 
-export function FileUpload({ onFile, loading }) {
+export function FileUpload({ onFile, loading, compact, fileName }) {
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
+  const [hovered, setHovered] = useState(false);
 
   function handleFiles(files) {
     const file = files[0];
@@ -37,11 +38,13 @@ export function FileUpload({ onFile, loading }) {
 
   return (
     <div
-      className={`${styles.dropzone} ${dragging ? styles.dragging : ''} ${loading ? styles.loading : ''}`}
+      className={`${styles.dropzone} ${dragging ? styles.dragging : ''} ${loading ? styles.loading : ''} ${compact ? styles.compact : ''}`}
       onDrop={onDrop}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onClick={loading ? undefined : onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onClick()}
@@ -69,8 +72,17 @@ export function FileUpload({ onFile, loading }) {
               <line x1="9" y1="15" x2="15" y2="15" />
             </svg>
           </div>
-          <p className={styles.primary}>Drop a PDF or EPUB here</p>
-          <p className={styles.secondary}>or click to browse</p>
+          {compact && fileName ? (
+            <div className={styles.labelSwap}>
+              <p className={`${styles.primary} ${(hovered || dragging) ? styles.labelHidden : ''}`}>{fileName}</p>
+              <p className={`${styles.primary} ${styles.labelOver} ${(hovered || dragging) ? '' : styles.labelHidden}`}>Drop a PDF or EPUB here</p>
+            </div>
+          ) : (
+            <>
+              <p className={styles.primary}>Drop a PDF or EPUB here</p>
+              {!compact && <p className={styles.secondary}>or click to browse</p>}
+            </>
+          )}
         </div>
       )}
     </div>

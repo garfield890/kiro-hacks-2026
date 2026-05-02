@@ -4,19 +4,6 @@
   justify-content: center;
   height: 120px;
   width: 100%;
-  position: relative;
-}
-
-/* Subtle horizontal guide line behind the word */
-.container::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1px;
-  background: var(--border);
-  pointer-events: none;
 }
 
 .word {
@@ -26,7 +13,4 @@
   color: var(--fg);
   text-align: center;
   line-height: 1;
-  position: relative;
-  background: var(--bg);
-  padding: 0 16px;
 }

@@ -1,0 +1,153 @@
+.wrapper {
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--surface);
+}
+
+.inputRow:focus-within {
+  border-color: var(--fg);
+}
+
+.icon {
+  color: var(--dim);
+  flex-shrink: 0;
+}
+
+.input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--fg);
+  font-size: 0.875rem;
+  font-family: inherit;
+  min-width: 0;
+}
+
+.input::placeholder {
+  color: var(--dim);
+}
+
+.clear {
+  background: none;
+  border: none;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
+.clear:hover {
+  color: var(--fg);
+}
+
+.count {
+  font-size: 0.72rem;
+  color: var(--dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Results list — opens upward from the search bar */
+.list {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 100;
+  padding: 4px 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+.item:hover,
+.active {
+  background: var(--surface);
+  color: var(--fg);
+}
+
+.resultNum {
+  font-size: 0.65rem;
+  color: var(--dim);
+  min-width: 16px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.chapterTag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 24px;
+}
+
+.snippet {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.snippet strong {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.jumpHint {
+  font-size: 0.65rem;
+  color: var(--dim);
+  flex-shrink: 0;
+}
+
+.overflow {
+  padding: 6px 14px;
+  font-size: 0.72rem;
+  color: var(--dim);
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+
+.empty {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 0.8rem;
+  color: var(--dim);
+  text-align: center;
+  z-index: 100;
+}

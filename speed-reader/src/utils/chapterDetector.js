@@ -2,8 +2,7 @@
  * Text-based chapter / section heading detector.
  *
  * Splits a flat word array into sections by scanning for heading patterns.
- * Works on the raw word tokens so it can be used by both PDF and EPUB parsers
- * as a fallback (or primary) detection method.
+ * Designed to work on the raw word tokens produced by PDF/EPUB parsers.
  */
 
 // ── Number helpers ────────────────────────────────────────────────────────────
@@ -18,16 +17,16 @@ const WORD_NUMS = [
   'forty-one','forty-two','forty-three','forty-four','forty-five','forty-six',
   'forty-seven','forty-eight','forty-nine','fifty',
 ];
-
 const WORD_NUM_SET = new Set(WORD_NUMS.map(w => w.toLowerCase()));
 
-// Roman numerals up to 100
-const ROMAN_RE = /^(M{0,3})(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/i;
+// Roman numerals I–C (1–100). Must be the ENTIRE token after stripping punctuation.
+const ROMAN_RE = /^(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/i;
 function isRoman(s) {
-  if (!s || s.length === 0 || s.length > 10) return false;
-  const clean = s.replace(/[.,;:!?]$/, '');
-  if (clean.length === 0) return false;
-  return ROMAN_RE.test(clean) && clean.toUpperCase() !== '';
+  const clean = s.replace(/[.,;:!?'"]+$/, '').trim();
+  if (!clean || clean.length > 7) return false;
+  if (!ROMAN_RE.test(clean)) return false;
+  // Exclude the empty string match (ROMAN_RE matches '' because all groups optional)
+  return clean.length > 0;
 }
 
 function isArabic(s) {
@@ -35,13 +34,11 @@ function isArabic(s) {
 }
 
 function isWordNumber(s) {
-  return WORD_NUM_SET.has(s.toLowerCase().replace(/[.,;:!?]$/, ''));
+  return WORD_NUM_SET.has(s.toLowerCase().replace(/[.,;:!?'"]+$/, ''));
 }
 
-// ── Heading-prefix keywords ───────────────────────────────────────────────────
+// ── Chapter keyword prefixes ──────────────────────────────────────────────────
 
-// These words, when followed by a number/numeral/word-number (or standing alone
-// on a "line"), strongly indicate a chapter boundary.
 const CHAPTER_KEYWORDS = new Set([
   'chapter', 'part', 'section', 'book', 'volume', 'act', 'scene',
   'prologue', 'epilogue', 'introduction', 'preface', 'foreword',
@@ -51,118 +48,36 @@ const CHAPTER_KEYWORDS = new Set([
 // ── Core detector ─────────────────────────────────────────────────────────────
 
 /**
- * Given a flat array of word strings, return sections:
- *   [{ title: string, startIndex: number, words: string[] }]
+ * detectChapters(words, rawText?)
  *
- * Strategy:
- *  1. Walk the word array looking for heading candidates.
- *  2. A heading candidate is a short run of words (≤ 8) that matches one of:
- *       a) KEYWORD  [NUMBER|ROMAN|WORD_NUM]  [optional subtitle words]
- *          e.g. "Chapter 1", "Chapter One", "Part IV", "Book Three"
- *       b) Standalone number/roman at the start of a "paragraph"
- *          e.g. "1", "I", "IV", "One", "Twenty-Three"
- *          — only accepted when preceded by a paragraph gap (≥ 2 consecutive
- *            whitespace-only tokens, or at position 0) AND followed by normal
- *            prose (not another number).
- *  3. To avoid false positives inside sentences, we require that a heading
- *     candidate is "isolated" — the token immediately before it (if any) ends
- *     with sentence-ending punctuation OR is a blank/gap marker.
+ * Returns [{ title, startIndex, words }]
  *
- * The words array should be pre-split on whitespace and filtered of empties,
- * BUT we accept an optional `rawText` string for better gap detection.
- * If rawText is not provided we use a heuristic based on word content.
+ * Two detection modes depending on whether rawText is supplied:
+ *
+ * WITH rawText (preferred):
+ *   Parse paragraphs from blank-line-separated blocks. A paragraph that
+ *   consists of ONLY a chapter heading token (roman numeral, arabic number,
+ *   word-number, or keyword+number) is treated as a chapter boundary.
+ *   This is the most accurate mode and handles "I", "II", "V" etc. correctly
+ *   because they must be the sole content of a paragraph.
+ *
+ * WITHOUT rawText:
+ *   Fall back to scanning for keyword-prefixed headings (Pattern A) only.
+ *   Standalone numerals are NOT matched in this mode to avoid false positives.
  */
 export function detectChapters(words, rawText = null) {
-  if (!words || words.length === 0) return [{ title: 'Document', startIndex: 0, words }];
-
-  // Build a set of word indices that follow a paragraph break.
-  // A paragraph break is: a blank line in rawText, or a sentence-ending word
-  // (ends with . ! ?) followed by a capitalised word.
-  const afterBreak = new Set();
-  afterBreak.add(0);
-
-  if (rawText) {
-    // Split rawText into paragraphs by blank lines, map back to word indices
-    const paragraphBreakPositions = getParagraphWordIndices(rawText, words);
-    for (const idx of paragraphBreakPositions) afterBreak.add(idx);
-  } else {
-    // Heuristic: word ends sentence if it ends with [.!?] or is ALL-CAPS short
-    for (let i = 1; i < words.length; i++) {
-      const prev = words[i - 1];
-      if (/[.!?]["']?$/.test(prev)) afterBreak.add(i);
-    }
+  if (!words || words.length === 0) {
+    return [{ title: 'Document', startIndex: 0, words }];
   }
 
-  const boundaries = []; // word indices where a new chapter starts
+  const boundaries = rawText
+    ? detectWithRawText(words, rawText)
+    : detectKeywordsOnly(words);
 
-  let i = 0;
-  while (i < words.length) {
-    const w = words[i];
-    const wLow = w.toLowerCase().replace(/[.,;:!?'"]+$/, '');
-
-    // ── Pattern A: KEYWORD [number/name] [optional subtitle] ──────────────
-    if (CHAPTER_KEYWORDS.has(wLow)) {
-      // Accept anywhere — chapter keywords are strong signals
-      const headingWords = [w];
-      let j = i + 1;
-
-      // Consume optional number token
-      if (j < words.length) {
-        const next = words[j];
-        if (isArabic(next) || isRoman(next) || isWordNumber(next)) {
-          headingWords.push(next);
-          j++;
-        }
-      }
-
-      // Consume optional subtitle (up to 5 more words, stop at sentence end)
-      while (j < words.length && headingWords.length < 8) {
-        const tok = words[j];
-        if (/[.!?]$/.test(tok)) { headingWords.push(tok); j++; break; }
-        // Stop if next token looks like a new heading keyword
-        if (CHAPTER_KEYWORDS.has(tok.toLowerCase())) break;
-        headingWords.push(tok);
-        j++;
-      }
-
-      const title = headingWords.join(' ').replace(/[.,;:]+$/, '').trim();
-      boundaries.push({ index: i, title });
-      i = j;
-      continue;
-    }
-
-    // ── Pattern B: Standalone numeral / word-number after a break ─────────
-    if (afterBreak.has(i)) {
-      const clean = w.replace(/[.,;:!?'"]+$/, '');
-
-      if (isRoman(clean) || isArabic(clean) || isWordNumber(clean)) {
-        // Make sure the NEXT word isn't also a number (avoids "1 2 3" lists)
-        const nextW = words[i + 1] || '';
-        const nextClean = nextW.replace(/[.,;:!?'"]+$/, '');
-        const nextIsNum = isArabic(nextClean) || isRoman(nextClean) || isWordNumber(nextClean);
-
-        if (!nextIsNum) {
-          // Also require the word after the number to be a normal word or nothing
-          // (prevents matching things like "I don't" — "I" is roman for 1 but
-          //  here it's a pronoun; we detect this by checking if the next word
-          //  is a common pronoun/article/preposition)
-          if (!isFunctionWord(nextW)) {
-            const title = clean;
-            boundaries.push({ index: i, title });
-            i++;
-            continue;
-          }
-        }
-      }
-    }
-
-    i++;
-  }
-
-  // ── Deduplicate boundaries that are too close together (< 30 words apart) ─
+  // Deduplicate boundaries closer than 20 words apart
   const filtered = [];
   for (const b of boundaries) {
-    if (filtered.length === 0 || b.index - filtered[filtered.length - 1].index >= 30) {
+    if (filtered.length === 0 || b.index - filtered[filtered.length - 1].index >= 20) {
       filtered.push(b);
     }
   }
@@ -171,78 +86,144 @@ export function detectChapters(words, rawText = null) {
     return [{ title: 'Document', startIndex: 0, words }];
   }
 
-  // ── Build sections ────────────────────────────────────────────────────────
+  return buildSections(words, filtered);
+}
+
+// ── Mode 1: paragraph-aware detection ────────────────────────────────────────
+
+function detectWithRawText(words, rawText) {
+  // Split into paragraphs on blank lines
+  const paragraphs = rawText.split(/\n[ \t]*\n+/);
+
+  // Map each paragraph's first word back to a word-array index.
+  // We walk the word array linearly to avoid O(n²) behaviour.
+  let wordCursor = 0;
+  const boundaries = [];
+
+  for (const para of paragraphs) {
+    const paraWords = para.trim().split(/\s+/).filter(Boolean);
+    if (paraWords.length === 0) continue;
+
+    // Find where this paragraph starts in the words array
+    const firstWord = paraWords[0];
+    let found = -1;
+    const searchLimit = Math.min(wordCursor + 200, words.length);
+    for (let k = wordCursor; k < searchLimit; k++) {
+      if (words[k] === firstWord) {
+        found = k;
+        wordCursor = k + paraWords.length;
+        break;
+      }
+    }
+    if (found === -1) continue;
+
+    // ── Is this paragraph a chapter heading? ──────────────────────────────
+
+    // Pattern A: keyword [number]  (any paragraph length up to 8 words)
+    if (paraWords.length <= 8) {
+      const firstLow = paraWords[0].toLowerCase().replace(/[.,;:!?'"]+$/, '');
+      if (CHAPTER_KEYWORDS.has(firstLow)) {
+        const title = paraWords.join(' ').replace(/[.,;:]+$/, '').trim();
+        boundaries.push({ index: found, title });
+        continue;
+      }
+    }
+
+    // Pattern B: paragraph is ONLY a numeral / word-number (1–3 tokens max)
+    // This correctly handles "I", "II", "V", "One", "1" as chapter markers
+    // while rejecting them when they appear inside prose paragraphs.
+    if (paraWords.length <= 3) {
+      const token = paraWords[0].replace(/[.,;:!?'"]+$/, '');
+      const isNum = isArabic(token) || isRoman(token) || isWordNumber(token);
+
+      if (isNum) {
+        // If the paragraph has more words, they must also be numbers or
+        // a subtitle-like phrase (not prose). We check the second word.
+        let accept = true;
+        if (paraWords.length > 1) {
+          const second = paraWords[1].replace(/[.,;:!?'"]+$/, '');
+          // Accept "Chapter One", "Part Two" style — second word is also a num
+          // or the whole thing is short enough to be a subtitle
+          if (!isArabic(second) && !isRoman(second) && !isWordNumber(second)) {
+            // Two-word paragraph like "I Introduction" — still a heading
+            // Three-word paragraph like "I The Party" — still a heading
+            // But "I went to" — reject (4+ words handled by length guard above)
+            accept = paraWords.length <= 3;
+          }
+        }
+
+        if (accept) {
+          const title = paraWords.join(' ').replace(/[.,;:]+$/, '').trim();
+          boundaries.push({ index: found, title });
+          continue;
+        }
+      }
+    }
+  }
+
+  return boundaries;
+}
+
+// ── Mode 2: keyword-only detection (no rawText) ───────────────────────────────
+
+function detectKeywordsOnly(words) {
+  const boundaries = [];
+  let i = 0;
+  while (i < words.length) {
+    const wLow = words[i].toLowerCase().replace(/[.,;:!?'"]+$/, '');
+    if (CHAPTER_KEYWORDS.has(wLow)) {
+      const headingWords = [words[i]];
+      let j = i + 1;
+      // Consume optional number token
+      if (j < words.length) {
+        const next = words[j].replace(/[.,;:!?'"]+$/, '');
+        if (isArabic(next) || isRoman(next) || isWordNumber(next)) {
+          headingWords.push(words[j]);
+          j++;
+        }
+      }
+      // Consume optional short subtitle (up to 4 more words)
+      while (j < words.length && headingWords.length < 6) {
+        const tok = words[j];
+        if (/[.!?]$/.test(tok)) { headingWords.push(tok); j++; break; }
+        if (CHAPTER_KEYWORDS.has(tok.toLowerCase())) break;
+        headingWords.push(tok);
+        j++;
+      }
+      const title = headingWords.join(' ').replace(/[.,;:]+$/, '').trim();
+      boundaries.push({ index: i, title });
+      i = j;
+      continue;
+    }
+    i++;
+  }
+  return boundaries;
+}
+
+// ── Section builder ───────────────────────────────────────────────────────────
+
+function buildSections(words, boundaries) {
   const sections = [];
 
-  // Content before first detected heading
-  if (filtered[0].index > 0) {
+  // Content before the first heading becomes its own section
+  if (boundaries[0].index > 0) {
     sections.push({
-      title: 'Preface',
+      title: 'Beginning',
       startIndex: 0,
-      words: words.slice(0, filtered[0].index),
+      words: words.slice(0, boundaries[0].index),
     });
   }
 
-  for (let bi = 0; bi < filtered.length; bi++) {
-    const start = filtered[bi].index;
-    const end = bi + 1 < filtered.length ? filtered[bi + 1].index : words.length;
+  for (let bi = 0; bi < boundaries.length; bi++) {
+    const start = boundaries[bi].index;
+    const end = bi + 1 < boundaries.length ? boundaries[bi + 1].index : words.length;
     sections.push({
-      title: filtered[bi].title,
+      title: boundaries[bi].title,
       startIndex: start,
       words: words.slice(start, end),
     });
   }
 
+  // The last section already runs to words.length, so the "end" is covered.
   return sections;
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-// Common English function words that follow "I" as a pronoun, not a chapter num
-const FUNCTION_WORDS = new Set([
-  'i','a','an','the','is','am','are','was','were','be','been','being',
-  'have','has','had','do','does','did','will','would','shall','should',
-  'may','might','must','can','could','need','dare','ought','used',
-  'to','of','in','on','at','by','for','with','about','against','between',
-  'into','through','during','before','after','above','below','from',
-  'up','down','out','off','over','under','again','further','then','once',
-  'and','but','or','nor','so','yet','both','either','neither','not',
-  'no','nor','just','because','as','until','while','although','though',
-  'if','unless','since','when','where','who','which','that','this','these',
-  'those','my','your','his','her','its','our','their','me','him','us','them',
-  'what','how','why','all','each','every','few','more','most','other',
-  'some','such','than','too','very','s','t','don','won','can',
-]);
-
-function isFunctionWord(w) {
-  if (!w) return false;
-  return FUNCTION_WORDS.has(w.toLowerCase().replace(/[.,;:!?'"]+$/, ''));
-}
-
-/**
- * Given the raw text and the word array, find word indices that start
- * a new paragraph (blank-line separated block).
- */
-function getParagraphWordIndices(rawText, words) {
-  const result = new Set();
-  // Split on blank lines (two or more newlines)
-  const paragraphs = rawText.split(/\n\s*\n+/);
-  let wordCursor = 0;
-
-  for (const para of paragraphs) {
-    const paraWords = para.trim().split(/\s+/).filter(Boolean);
-    if (paraWords.length === 0) continue;
-    // Find where this paragraph starts in the words array
-    // (simple linear scan — good enough for typical book sizes)
-    const firstWord = paraWords[0];
-    for (let k = wordCursor; k < Math.min(wordCursor + 50, words.length); k++) {
-      if (words[k] === firstWord) {
-        result.add(k);
-        wordCursor = k + paraWords.length;
-        break;
-      }
-    }
-  }
-
-  return result;
 }

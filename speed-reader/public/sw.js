@@ -7,7 +7,7 @@
  * On fetch    → serve from cache instantly, revalidate in background
  */
 
-const CACHE_NAME = 'speedreader-v1';
+const CACHE_NAME = 'speedreader-v2';
 
 // The app shell — index.html is always fetched fresh so new deploys are picked up,
 // but all hashed JS/CSS assets are served from cache immediately.
