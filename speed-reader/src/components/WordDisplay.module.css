@@ -1,16 +1,53 @@
 .container {
+  position: relative;
+  height: 100px;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 120px;
-  width: 100%;
 }
 
-.word {
+/* Full-viewport tape overlay — sits on top, fixed to viewport */
+.tapeViewport {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 100px;
+  top: var(--tape-top, 140px);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 10;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+}
+
+.strip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
+  height: fit-content;
+  white-space: nowrap;
+  line-height: 1;
+  will-change: transform;
+}
+
+.tapeWord {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+  display: inline;
+}
+
+/* Non-tape single word */
+.wordCenter {
   font-size: clamp(2.5rem, 6vw, 4.5rem);
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--fg);
-  text-align: center;
   line-height: 1;
+  white-space: nowrap;
+  margin: auto;
 }

@@ -99,6 +99,15 @@
   text-align: center;
 }
 
+.noiseRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
 .emptyState {
   display: contents;
 }

@@ -149,7 +149,7 @@ export function ChapterSlider({ sections, currentIndex, totalWords, onSeek, isPl
       <div className={styles.sectionLabel}>
         <span className={styles.sectionName}>{currentSection}</span>
         <span className={styles.wordCount}>
-          {currentIndex + 1} / {totalWords}
+          {currentIndex + 1} / {totalWords} ({totalWords > 1 ? ((currentIndex + 1) / totalWords * 100).toFixed(1) : '0.0'}%)
         </span>
       </div>
 
@@ -182,10 +182,7 @@ export function ChapterSlider({ sections, currentIndex, totalWords, onSeek, isPl
           aria-label="Reading position"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === 'ArrowRight') onSeek(Math.min(currentIndex + 1, totalWords - 1));
-            if (e.key === 'ArrowLeft') onSeek(Math.max(currentIndex - 1, 0));
-            if (e.key === 'ArrowRight' && e.shiftKey) onSeek(Math.min(currentIndex + 10, totalWords - 1));
-            if (e.key === 'ArrowLeft' && e.shiftKey) onSeek(Math.max(currentIndex - 10, 0));
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') e.preventDefault();
           }}
         >
           <div className={styles.track}>

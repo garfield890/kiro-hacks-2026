@@ -6,11 +6,13 @@ import SearchWorker from '../workers/search.worker.js?worker';
 
 export function SearchBar({ allWords, sections, onSeek, onPause }) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState(null);  // null = no search yet, [] = searched but empty
-  const [displayedResults, setDisplayedResults] = useState(null); // last non-empty results
+  const [results, setResults] = useState(null);
+  const [displayedResults, setDisplayedResults] = useState(null);
   const [activeIdx, setActiveIdx] = useState(0);
   const [open, setOpen] = useState(false);
+  // isTyping as both ref (for worker callback) and state (for render)
   const [isTyping, setIsTyping] = useState(false);
+  const isTypingRef = useRef(false);
 
   const inputRef    = useRef(null);
   const listRef     = useRef(null);
@@ -18,8 +20,8 @@ export function SearchBar({ allWords, sections, onSeek, onPause }) {
   const workerRef   = useRef(null);
   const searchId    = useRef(0);
   const debounceRef = useRef(null);
-  const typingTimer = useRef(null); // clears "isTyping" after keystroke gap
-  const TYPING_TIMEOUT = 600; // ms of silence before considered "done typing"
+  const typingTimer = useRef(null);
+  const TYPING_TIMEOUT = 600;
 
   // Close on outside click
   useEffect(() => {
@@ -42,8 +44,6 @@ export function SearchBar({ allWords, sections, onSeek, onPause }) {
         if (matches.length > 0) {
           setDisplayedResults(matches);
         }
-        // If no matches and user has stopped typing, show the empty state
-        // (isTyping check happens in render — we just store the raw results here)
         setActiveIdx(0);
         setOpen(true);
       }
@@ -159,10 +159,13 @@ export function SearchBar({ allWords, sections, onSeek, onPause }) {
           value={query}
           onChange={e => {
             setQuery(e.target.value);
-            // Mark as actively typing; reset the idle timer
+            isTypingRef.current = true;
             setIsTyping(true);
             clearTimeout(typingTimer.current);
-            typingTimer.current = setTimeout(() => setIsTyping(false), TYPING_TIMEOUT);
+            typingTimer.current = setTimeout(() => {
+              isTypingRef.current = false;
+              setIsTyping(false);
+            }, TYPING_TIMEOUT);
           }}
           onKeyDown={handleKeyDown}
           onFocus={() => listResults && setOpen(true)}
@@ -173,7 +176,16 @@ export function SearchBar({ allWords, sections, onSeek, onPause }) {
         {query && (
           <button
             className={styles.clear}
-            onClick={() => { setQuery(''); setResults(null); setDisplayedResults(null); setOpen(false); inputRef.current?.focus(); }}
+            onClick={() => { 
+              setQuery(''); 
+              setResults(null); 
+              setDisplayedResults(null); 
+              setOpen(false); 
+              isTypingRef.current = false;
+              setIsTyping(false);
+              clearTimeout(typingTimer.current);
+              inputRef.current?.focus(); 
+            }}
             aria-label="Clear search"
           >×</button>
         )}
