@@ -75,7 +75,7 @@ export default function App() {
     <div className={styles.app}>
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <h1 className={styles.title}>SpeedReader</h1>
+          <h1 className={styles.title}>r e a d e r</h1>
           {fileName && <span className={styles.fileName}>{fileName}</span>}
         </div>
         <ThemeToggle preference={preference} onChange={setPreference} />
