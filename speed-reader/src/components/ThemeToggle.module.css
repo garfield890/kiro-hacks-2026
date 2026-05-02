@@ -1,0 +1,32 @@
+.toggle {
+  display: flex;
+  border: 1px solid var(--fg);
+  border-radius: 99px;
+  overflow: hidden;
+  opacity: 0.55;
+}
+
+.toggle:hover {
+  opacity: 1;
+}
+
+.option {
+  background: none;
+  border: none;
+  padding: 4px 12px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--fg);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.option:not(:last-child) {
+  border-right: 1px solid var(--fg);
+}
+
+.active {
+  background: var(--fg);
+  color: var(--bg);
+}

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SpeedReader</title>
+    <!--
+      Critical inline styles + theme init script.
+      Both run synchronously before any external resource loads,
+      eliminating the white flash entirely.
+    -->
+    <style>
+      :root { --white: #F1FCFF; --black: #030412; }
+      html, body { margin: 0; padding: 0; }
+      /* Applied immediately by the script below before paint */
+      [data-theme="dark"]  { background: #030412; color: #F1FCFF; }
+      [data-theme="light"] { background: #F1FCFF; color: #030412; }
+    </style>
+    <script>
+      (function () {
+        var pref = localStorage.getItem('speed-reader-theme') || 'system';
+        var resolved = pref === 'system'
+          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : pref;
+        document.documentElement.setAttribute('data-theme', resolved);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
+  </body>
+</html>

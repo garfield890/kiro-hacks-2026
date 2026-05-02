@@ -1,0 +1,104 @@
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.playBtn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--fg);
+  border: none;
+  color: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.playBtn:hover:not(:disabled) {
+  opacity: 0.8;
+  transform: scale(1.06);
+}
+
+.playBtn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.playBtn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.wpmGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.wpmLabel {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.wpmValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  min-width: 3ch;
+  text-align: right;
+}
+
+.wpmUnit {
+  font-size: 0.78rem;
+  color: var(--dim);
+}
+
+.wpmSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: var(--border);
+  border-radius: 99px;
+  outline: none;
+  cursor: pointer;
+}
+
+.wpmSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--fg);
+  border: 2px solid var(--bg);
+  cursor: pointer;
+  outline: 1px solid var(--fg);
+}
+
+.wpmSlider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--fg);
+  border: 2px solid var(--bg);
+  cursor: pointer;
+  outline: 1px solid var(--fg);
+}
+
+.wpmRange {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 0.65rem;
+  color: var(--dim);
+}

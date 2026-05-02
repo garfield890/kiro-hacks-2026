@@ -1,0 +1,198 @@
+import { useRef, useCallback, useEffect, useState } from 'react';
+import styles from './ChapterSlider.module.css';
+
+/**
+ * sections: [{ title, words }]
+ * currentIndex: global word index
+ * totalWords: total word count
+ * onSeek(index): called when user drags/clicks
+ * isPlaying: bool — used to pause at chapter boundaries
+ * onPause: called when playback should pause (chapter boundary hit)
+ */
+export function ChapterSlider({ sections, currentIndex, totalWords, onSeek, isPlaying, onPause }) {
+  const trackRef = useRef(null);
+  const [tooltip, setTooltip] = useState(null); // { x, label }
+  const [hoveredTick, setHoveredTick] = useState(null);
+
+  // Build chapter boundary data
+  const chapterBoundaries = [];
+  let offset = 0;
+  for (let i = 0; i < sections.length; i++) {
+    chapterBoundaries.push({
+      index: offset,
+      title: sections[i].title,
+      wordCount: sections[i].words.length,
+    });
+    offset += sections[i].words.length;
+  }
+
+  // Pause at chapter boundaries when playing
+  const prevIndexRef = useRef(currentIndex);
+  useEffect(() => {
+    if (!isPlaying) {
+      prevIndexRef.current = currentIndex;
+      return;
+    }
+    // Check if we just crossed a chapter boundary (not the very first one)
+    for (let i = 1; i < chapterBoundaries.length; i++) {
+      const boundary = chapterBoundaries[i].index;
+      if (prevIndexRef.current < boundary && currentIndex >= boundary) {
+        onPause();
+        break;
+      }
+    }
+    prevIndexRef.current = currentIndex;
+  }, [currentIndex, isPlaying]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const getIndexFromX = useCallback((clientX) => {
+    const track = trackRef.current;
+    if (!track || totalWords === 0) return 0;
+    const rect = track.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    return Math.round(ratio * (totalWords - 1));
+  }, [totalWords]);
+
+  function handleTrackClick(e) {
+    onSeek(getIndexFromX(e.clientX));
+  }
+
+  function handleMouseMove(e) {
+    const track = trackRef.current;
+    if (!track || totalWords === 0) return;
+    const rect = track.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const ratio = Math.max(0, Math.min(1, x / rect.width));
+    const idx = Math.round(ratio * (totalWords - 1));
+
+    // Find which section this index belongs to
+    let sectionTitle = '';
+    for (let i = chapterBoundaries.length - 1; i >= 0; i--) {
+      if (idx >= chapterBoundaries[i].index) {
+        sectionTitle = chapterBoundaries[i].title;
+        break;
+      }
+    }
+
+    setTooltip({ x: e.clientX - rect.left, label: sectionTitle || `Word ${idx + 1}` });
+  }
+
+  function handleMouseLeave() {
+    setTooltip(null);
+    setHoveredTick(null);
+  }
+
+  // Drag support
+  const dragging = useRef(false);
+
+  function onMouseDown(e) {
+    dragging.current = true;
+    onSeek(getIndexFromX(e.clientX));
+    window.addEventListener('mousemove', onWindowMouseMove);
+    window.addEventListener('mouseup', onWindowMouseUp);
+  }
+
+  function onWindowMouseMove(e) {
+    if (dragging.current) onSeek(getIndexFromX(e.clientX));
+  }
+
+  function onWindowMouseUp() {
+    dragging.current = false;
+    window.removeEventListener('mousemove', onWindowMouseMove);
+    window.removeEventListener('mouseup', onWindowMouseUp);
+  }
+
+  useEffect(() => {
+    return () => {
+      window.removeEventListener('mousemove', onWindowMouseMove);
+      window.removeEventListener('mouseup', onWindowMouseUp);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const progress = totalWords > 1 ? currentIndex / (totalWords - 1) : 0;
+
+  // Current section name
+  let currentSection = '';
+  for (let i = chapterBoundaries.length - 1; i >= 0; i--) {
+    if (currentIndex >= chapterBoundaries[i].index) {
+      currentSection = chapterBoundaries[i].title;
+      break;
+    }
+  }
+
+  return (
+    <div className={styles.wrapper}>
+      {/* Section label */}
+      <div className={styles.sectionLabel}>
+        <span className={styles.sectionName}>{currentSection}</span>
+        <span className={styles.wordCount}>
+          {currentIndex + 1} / {totalWords}
+        </span>
+      </div>
+
+      {/* Track */}
+      <div
+        className={styles.trackOuter}
+        ref={trackRef}
+        onClick={handleTrackClick}
+        onMouseDown={onMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        role="slider"
+        aria-valuemin={0}
+        aria-valuemax={totalWords - 1}
+        aria-valuenow={currentIndex}
+        aria-label="Reading position"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowRight') onSeek(Math.min(currentIndex + 1, totalWords - 1));
+          if (e.key === 'ArrowLeft') onSeek(Math.max(currentIndex - 1, 0));
+          if (e.key === 'ArrowRight' && e.shiftKey) onSeek(Math.min(currentIndex + 10, totalWords - 1));
+          if (e.key === 'ArrowLeft' && e.shiftKey) onSeek(Math.max(currentIndex - 10, 0));
+        }}
+      >
+        <div className={styles.track}>
+          {/* Filled portion */}
+          <div
+            className={styles.fill}
+            style={{ width: `${progress * 100}%` }}
+          />
+
+          {/* Chapter tick marks */}
+          {chapterBoundaries.map((ch, i) => {
+            if (i === 0) return null; // skip start
+            const pct = totalWords > 1 ? (ch.index / (totalWords - 1)) * 100 : 0;
+            return (
+              <div
+                key={i}
+                className={`${styles.tick} ${hoveredTick === i ? styles.tickHovered : ''}`}
+                style={{ left: `${pct}%` }}
+                onMouseEnter={() => setHoveredTick(i)}
+                onMouseLeave={() => setHoveredTick(null)}
+                title={ch.title}
+              >
+                <div className={styles.tickLine} />
+                <div className={styles.tickLabel}>{ch.title}</div>
+              </div>
+            );
+          })}
+
+          {/* Thumb */}
+          <div
+            className={styles.thumb}
+            style={{ left: `${progress * 100}%` }}
+          />
+        </div>
+
+        {/* Hover tooltip */}
+        {tooltip && (
+          <div
+            className={styles.tooltip}
+            style={{ left: `${tooltip.x}px` }}
+          >
+            {tooltip.label}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

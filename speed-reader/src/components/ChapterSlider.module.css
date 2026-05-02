@@ -1,0 +1,138 @@
+.wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--dim);
+  padding: 0 2px;
+}
+
+.sectionName {
+  font-weight: 600;
+  color: var(--fg);
+  max-width: 70%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wordCount {
+  font-variant-numeric: tabular-nums;
+}
+
+.trackOuter {
+  position: relative;
+  padding: 16px 0;
+  cursor: pointer;
+  outline: none;
+}
+
+.trackOuter:focus-visible .track {
+  outline: 2px solid var(--fg);
+  outline-offset: 4px;
+}
+
+.track {
+  position: relative;
+  height: 2px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: visible;
+}
+
+.fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--fg);
+  border-radius: 99px;
+  pointer-events: none;
+}
+
+.thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  background: var(--bg);
+  border: 2px solid var(--fg);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Chapter tick marks */
+.tick {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.tickLine {
+  width: 1px;
+  height: 14px;
+  background: var(--fg);
+  opacity: 0.35;
+}
+
+.tick:hover .tickLine,
+.tickHovered .tickLine {
+  opacity: 0.9;
+  height: 18px;
+}
+
+.tickLabel {
+  position: absolute;
+  top: 18px;
+  white-space: nowrap;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--fg);
+  opacity: 0;
+  pointer-events: none;
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tick:hover .tickLabel,
+.tickHovered .tickLabel {
+  opacity: 1;
+}
+
+/* Hover tooltip */
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

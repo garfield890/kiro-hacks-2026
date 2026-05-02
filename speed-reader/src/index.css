@@ -1,0 +1,50 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Palette: only two colors ─────────────────────────── */
+:root {
+  --white: #F1FCFF;
+  --black: #030412;
+}
+
+/* Dark theme (default) */
+:root,
+[data-theme="dark"] {
+  --bg:      var(--black);
+  --fg:      var(--white);
+  --border:  rgba(241, 252, 255, 0.18);
+  --surface: rgba(241, 252, 255, 0.05);
+  --dim:     rgba(241, 252, 255, 0.38);
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg:      var(--white);
+  --fg:      var(--black);
+  --border:  rgba(3, 4, 18, 0.18);
+  --surface: rgba(3, 4, 18, 0.05);
+  --dim:     rgba(3, 4, 18, 0.38);
+}
+
+/* ── Base ─────────────────────────────────────────────── */
+html {
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
