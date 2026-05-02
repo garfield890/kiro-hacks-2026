@@ -1,0 +1,13 @@
+{
+  "name": "Security Check on Auth Files",
+  "version": "1.0.0",
+  "description": "When an auth-related file is edited, prompt the agent to review for common security issues.",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["**/auth/**", "**/middleware/**", "**/*auth*", "**/*token*", "**/*password*"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "An authentication or security-related file was just edited. Please review the changes for: (1) hardcoded secrets or credentials, (2) missing input validation, (3) insecure token handling, (4) missing rate limiting on sensitive endpoints, (5) any deviation from the security guidelines in .kiro/steering/project.md."
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "Run Tests After Task",
+  "version": "1.0.0",
+  "description": "Automatically run the test suite after a spec task is marked completed to catch regressions early.",
+  "when": {
+    "type": "postTaskExecution"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "npm test -- --run"
+  }
+}
