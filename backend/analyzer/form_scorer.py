@@ -37,18 +37,23 @@ _LEFT_ANKLE = 27
 _RIGHT_ANKLE = 28
 
 # ---------------------------------------------------------------------------
-# Ideal angle ranges (degrees) — exercise-agnostic heuristics for the MVP.
+# Ideal angle ranges (degrees) — strict thresholds.  Only genuinely good
+# form should land inside these windows.
 # Each tuple is (min_angle, max_angle).
 # ---------------------------------------------------------------------------
 _IDEAL_RANGES: Dict[str, Tuple[float, float]] = {
-    "left_knee": (80.0, 180.0),
-    "right_knee": (80.0, 180.0),
-    "left_hip": (70.0, 180.0),
-    "right_hip": (70.0, 180.0),
-    "left_elbow": (30.0, 180.0),
-    "right_elbow": (30.0, 180.0),
-    "spine_alignment": (0.0, 15.0),  # vertical deviation in degrees
+    "left_knee": (155.0, 180.0),
+    "right_knee": (155.0, 180.0),
+    "left_hip": (160.0, 180.0),
+    "right_hip": (160.0, 180.0),
+    "left_elbow": (155.0, 180.0),
+    "right_elbow": (155.0, 180.0),
+    "spine_alignment": (0.0, 8.0),  # vertical deviation in degrees
 }
+
+# How far outside the ideal range a joint can be before it's considered
+# severely off.  Used for graduated penalty scoring.
+_SEVERE_DEVIATION_DEG = 30.0
 
 # ---------------------------------------------------------------------------
 # Joint definitions: (point_A_index, vertex_B_index, point_C_index)
@@ -178,12 +183,16 @@ class FormScorer:
     """Computes joint angles from landmark sequences and produces a form score.
 
     The scorer evaluates six joint angles (left/right knee, hip, elbow) plus
-    spine alignment across all provided frames.  Each joint's mean angle is
-    compared against an ideal range; joints within range are marked as
-    well-performed, and those outside are flagged.
+    spine alignment across all provided frames.  Each joint receives a
+    graduated score based on how far its mean angle deviates from the ideal
+    range.  The overall ``form_score`` is a weighted average that penalises
+    deviations harshly — only genuinely good form scores above 80.
 
-    The overall ``form_score`` is the percentage of joint checks that fall
-    within their ideal range, scaled to [0, 100].
+    Scoring is intentionally strict: joints inside the ideal range score
+    100 %, joints slightly outside lose points proportionally, and joints
+    severely outside the range (≥ 30° deviation) score 0 % for that joint.
+    Frame-to-frame consistency (low standard deviation) provides a small
+    bonus; high variance applies a penalty.
     """
 
     def score(self, frames: List[FrameLandmarks]) -> ScoringResult:
@@ -224,33 +233,103 @@ class FormScorer:
             deviation = _computeSpineDeviation(lm)
             angle_series["spine_alignment"].append(deviation)
 
-        # Compute mean angles and classify joints.
+        # Compute per-joint scores with graduated penalties.
         angle_summaries: Dict[str, float] = {}
         flagged: List[str] = []
         well_performed: List[str] = []
+        joint_scores: List[float] = []
 
         for joint_name, series in angle_series.items():
             if not series:
                 flagged.append(joint_name)
+                joint_scores.append(0.0)
                 continue
 
             mean_angle = sum(series) / len(series)
             angle_summaries[joint_name] = round(mean_angle, 2)
 
             lo, hi = _IDEAL_RANGES[joint_name]
+
+            # --- Graduated deviation penalty ---
             if lo <= mean_angle <= hi:
+                base_score = 100.0
+            else:
+                # Distance outside the ideal window
+                deviation = min(abs(mean_angle - lo), abs(mean_angle - hi))
+                # Linear penalty: 0 at boundary, 100 at _SEVERE_DEVIATION_DEG
+                penalty_pct = min(deviation / _SEVERE_DEVIATION_DEG, 1.0) * 100.0
+                base_score = max(0.0, 100.0 - penalty_pct)
+
+            # --- Consistency penalty (std-dev based) ---
+            if len(series) >= 2:
+                mean_val = mean_angle
+                variance = sum((v - mean_val) ** 2 for v in series) / len(series)
+                std_dev = math.sqrt(variance)
+                # High variance (> 15°) costs up to 20 points on this joint.
+                consistency_penalty = min(std_dev / 15.0, 1.0) * 20.0
+                base_score = max(0.0, base_score - consistency_penalty)
+
+            joint_scores.append(base_score)
+
+            if base_score >= 80.0:
                 well_performed.append(joint_name)
             else:
                 flagged.append(joint_name)
 
-        # Score = percentage of joints within ideal range, clamped to [0, 100].
-        total_joints = len(_IDEAL_RANGES)
-        raw_score = (len(well_performed) / total_joints) * 100.0 if total_joints > 0 else 0.0
-        form_score = max(0, min(100, int(round(raw_score))))
+        # Overall score = mean of per-joint scores, then apply a harshness
+        # curve (square root scaling inverted — we square the normalised
+        # score so mediocre joints drag the total down aggressively).
+        if joint_scores:
+            avg = sum(joint_scores) / len(joint_scores)
+            # Squaring the 0-1 normalised average makes the curve harsh:
+            # 0.7 avg → 0.49 → score 49, 0.9 avg → 0.81 → score 81
+            normalised = avg / 100.0
+            harsh_score = (normalised ** 2) * 100.0
+            form_score = max(0, min(100, int(round(harsh_score))))
+        else:
+            form_score = 0
+
+        # Detect low / no movement — check what percentage of consecutive
+        # frame pairs show meaningful angle changes across all joints.
+        # A frame pair "has movement" if the sum of absolute angle deltas
+        # across all joints exceeds a threshold.  If fewer than 75 % of
+        # frame pairs show movement, the video is flagged as low-movement.
+        _FRAME_MOVEMENT_THRESHOLD = 5.0   # degrees total across all joints
+        _MIN_MOVING_RATIO = 0.75          # need 75 % of frames moving
+        low_movement = False
+
+        if len(frames) >= 5:
+            num_pairs = len(frames) - 1
+            moving_pairs = 0
+
+            for i in range(num_pairs):
+                total_delta = 0.0
+                lm_a = frames[i].landmarks
+                lm_b = frames[i + 1].landmarks
+
+                for joint_name, (idx_a, idx_b, idx_c) in _JOINT_TRIPLETS.items():
+                    angle_a = compute_angle(
+                        _extractPoint(lm_a, idx_a),
+                        _extractPoint(lm_a, idx_b),
+                        _extractPoint(lm_a, idx_c),
+                    )
+                    angle_b = compute_angle(
+                        _extractPoint(lm_b, idx_a),
+                        _extractPoint(lm_b, idx_b),
+                        _extractPoint(lm_b, idx_c),
+                    )
+                    total_delta += abs(angle_b - angle_a)
+
+                if total_delta > _FRAME_MOVEMENT_THRESHOLD:
+                    moving_pairs += 1
+
+            moving_ratio = moving_pairs / num_pairs if num_pairs > 0 else 0.0
+            low_movement = moving_ratio < _MIN_MOVING_RATIO
 
         return ScoringResult(
             form_score=form_score,
             flagged_joints=flagged,
             well_performed_joints=well_performed,
             angle_summaries=angle_summaries,
+            low_movement=low_movement,
         )

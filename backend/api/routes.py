@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import os
 import tempfile
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import cv2
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -74,7 +74,7 @@ async def analyze(video_clip: UploadFile = File(...)) -> Dict[str, Any]:
         HTTPException 422: If the clip is shorter than the minimum duration.
         HTTPException 500: If an unexpected error occurs during analysis.
     """
-    tmp_path: str | None = None
+    tmp_path: Optional[str] = None
 
     try:
         # --- Read and validate the uploaded file ---

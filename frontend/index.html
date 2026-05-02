@@ -1,71 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gym Form Checker</title>
-  <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-  <header>
-    <h1>Gym Form Checker</h1>
-  </header>
-
-  <main>
-    <!-- Video Preview Section -->
-    <section id="video-section" aria-label="Camera preview">
-      <div id="video-container">
-        <video id="video-preview" autoplay playsinline aria-label="Live camera feed"></video>
-
-        <!-- Countdown Overlay -->
-        <div id="countdown-overlay" class="hidden" role="alert" aria-live="assertive" aria-label="Countdown timer">
-          <span id="countdown-number"></span>
-        </div>
-
-        <!-- Recording Indicator -->
-        <div id="recording-indicator" class="hidden" aria-live="polite" aria-label="Recording status">
-          <span id="rec-dot" aria-hidden="true"></span>
-          <span id="rec-label">REC</span>
-          <span id="rec-elapsed">00:00</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Controls Section -->
-    <section id="controls-section" aria-label="Camera and recording controls">
-      <div id="controls">
-        <button id="btn-open-camera" aria-label="Open camera">Open Camera</button>
-        <button id="btn-close-camera" class="hidden" aria-label="Close camera">Close Camera</button>
-        <button id="btn-start-recording" class="hidden" aria-label="Start recording">Start Recording</button>
-        <button id="btn-cancel-countdown" class="hidden" aria-label="Cancel countdown">Cancel</button>
-        <button id="btn-stop-recording" class="hidden" aria-label="Stop recording">Stop Recording</button>
-        <button id="btn-record-again" class="hidden" aria-label="Record again">Record Again</button>
-        <button id="btn-retry-analysis" class="hidden" aria-label="Retry analysis">Retry Analysis</button>
-      </div>
-    </section>
-
-    <!-- Error Display -->
-    <section id="error-section" class="hidden" role="alert" aria-live="assertive" aria-label="Error messages">
-      <p id="error-message"></p>
-    </section>
-
-    <!-- Loading Spinner -->
-    <section id="loading-section" class="hidden" aria-label="Analysis in progress">
-      <div id="spinner" role="status" aria-label="Analyzing your exercise">
-        <div class="spinner-animation"></div>
-        <p>Analyzing your exercise&hellip;</p>
-      </div>
-    </section>
-
-    <!-- Feedback Section -->
-    <section id="feedback-section" class="hidden" aria-label="Feedback report">
-    </section>
-  </main>
-
-  <script src="js/camera-manager.js"></script>
-  <script src="js/recorder.js"></script>
-  <script src="js/uploader.js"></script>
-  <script src="js/feedback-ui.js"></script>
-  <script src="js/app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gym Form Checker</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>

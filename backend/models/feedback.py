@@ -11,6 +11,7 @@ Requirements: 5.1, 5.2, 5.3
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -36,6 +37,10 @@ class FeedbackReport(BaseModel):
         ...,
         min_length=1,
         description="List of actionable improvement suggestions",
+    )
+    warning: Optional[str] = Field(
+        default=None,
+        description="Optional warning message, e.g. when no exercise movement is detected",
     )
 
 
@@ -72,3 +77,4 @@ class ScoringResult:
     flagged_joints: list[str] = field(default_factory=list)
     well_performed_joints: list[str] = field(default_factory=list)
     angle_summaries: dict[str, float] = field(default_factory=dict)
+    low_movement: bool = False

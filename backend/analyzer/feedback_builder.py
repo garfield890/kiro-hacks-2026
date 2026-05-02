@@ -45,13 +45,13 @@ _POSITIVE_TEMPLATES: Dict[str, str] = {
 }
 
 _SUGGESTION_TEMPLATES: Dict[str, str] = {
-    "left_knee": "Focus on keeping your left knee angle within a comfortable range to protect the joint.",
-    "right_knee": "Focus on keeping your right knee angle within a comfortable range to protect the joint.",
-    "left_hip": "Try to improve your left hip mobility for a fuller range of motion.",
-    "right_hip": "Try to improve your right hip mobility for a fuller range of motion.",
-    "left_elbow": "Work on stabilizing your left elbow position throughout the movement.",
-    "right_elbow": "Work on stabilizing your right elbow position throughout the movement.",
-    "spine_alignment": "Pay attention to keeping your spine straight and avoid leaning to one side.",
+    "left_knee": "Your left knee angle is off — this puts unnecessary stress on the joint. Fix it before adding load.",
+    "right_knee": "Your right knee angle is off — this puts unnecessary stress on the joint. Fix it before adding load.",
+    "left_hip": "Your left hip range of motion is poor. Work on hip mobility drills before your next session.",
+    "right_hip": "Your right hip range of motion is poor. Work on hip mobility drills before your next session.",
+    "left_elbow": "Your left elbow is unstable throughout the movement. Lock in your arm path.",
+    "right_elbow": "Your right elbow is unstable throughout the movement. Lock in your arm path.",
+    "spine_alignment": "Your spine is not staying neutral — this is a fast track to a back injury. Prioritize core bracing.",
 }
 
 # ---------------------------------------------------------------------------
@@ -61,36 +61,41 @@ _SCORE_RANGES: List[Tuple[int, int, str, str]] = [
     # (min_score, max_score, positive_comment, suggestion_comment)
     (
         90, 100,
-        "Excellent overall form — keep up the great work!",
-        "To maintain your high level, consider recording regularly to track consistency.",
+        "Genuinely strong form — you clearly know what you're doing.",
+        "Stay disciplined. Even small lapses in consistency will show up over time.",
     ),
     (
-        75, 89,
-        "Good form overall with solid fundamentals.",
-        "Small adjustments can take your form from good to great.",
+        80, 89,
+        "Solid form with room to tighten up.",
+        "You're close to excellent — focus on the flagged joints to push past 90.",
     ),
     (
-        50, 74,
-        "You showed decent control during parts of the exercise.",
-        "Slow down the movement and focus on controlled repetitions to improve your score.",
+        60, 79,
+        "Passable form, but several joints need serious attention.",
+        "Slow down your reps significantly and prioritize control over speed or weight.",
     ),
     (
-        25, 49,
-        "You completed the exercise, which is a positive first step.",
-        "Consider reducing the weight or resistance and focusing on proper technique.",
+        40, 59,
+        "Your form has significant issues that could lead to injury.",
+        "Drop the weight substantially and drill the movement pattern with bodyweight first.",
     ),
     (
-        0, 24,
-        "Great effort getting started with form tracking!",
-        "Start with bodyweight exercises to build a strong movement foundation before adding load.",
+        20, 39,
+        "You attempted the exercise, but your form needs a lot of work.",
+        "Consider working with a coach or watching detailed form tutorials before continuing.",
+    ),
+    (
+        0, 19,
+        "You showed up and recorded yourself — that takes initiative.",
+        "Your form is far from safe. Start from scratch with bodyweight basics and build up slowly.",
     ),
 ]
 
 # ---------------------------------------------------------------------------
 # Fallback messages (ensure the guarantee is always met)
 # ---------------------------------------------------------------------------
-_FALLBACK_POSITIVE = "You completed the exercise and took the time to check your form — that's a great habit."
-_FALLBACK_SUGGESTION = "Keep practicing and record yourself regularly to track your improvement over time."
+_FALLBACK_POSITIVE = "You recorded yourself and checked your form — that's more than most people do."
+_FALLBACK_SUGGESTION = "There's real work to do here. Record again, compare side-by-side, and fix one joint at a time."
 
 
 class FeedbackBuilder:
@@ -105,6 +110,9 @@ class FeedbackBuilder:
     def build(self, result: ScoringResult) -> FeedbackReport:
         """Build a human-readable feedback report from a scoring result.
 
+        If no movement was detected, returns score 0 with only a warning
+        and minimal placeholder text (no real feedback).
+
         Args:
             result: The ``ScoringResult`` produced by ``FormScorer.score``.
 
@@ -113,6 +121,19 @@ class FeedbackBuilder:
             ``positive_observations``, and a non-empty list of
             ``improvement_suggestions``.
         """
+        # --- No movement: score 0, warning only, no real feedback ---
+        if result.low_movement:
+            return FeedbackReport(
+                form_score=0,
+                positive_observations=["—"],
+                improvement_suggestions=["—"],
+                warning=(
+                    "Not enough movement detected — it looks like you weren't "
+                    "exercising for most of the video. Make sure you perform a "
+                    "full exercise during the recording and try again."
+                ),
+            )
+
         positives: List[str] = []
         suggestions: List[str] = []
 
@@ -142,6 +163,7 @@ class FeedbackBuilder:
             form_score=result.form_score,
             positive_observations=positives,
             improvement_suggestions=suggestions,
+            warning=None,
         )
 
     # ------------------------------------------------------------------
