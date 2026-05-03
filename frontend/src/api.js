@@ -5,7 +5,7 @@
  * @returns {Promise<object>} FeedbackReport
  */
 export async function uploadVideo(blob, mimeType = 'video/webm') {
-  const ext = mimeType.includes('mp4') ? 'mp4' : 'webm'
+  const ext = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('quicktime') ? 'mov' : 'webm'
   const formData = new FormData()
   formData.append('video_clip', blob, `recording.${ext}`)
 

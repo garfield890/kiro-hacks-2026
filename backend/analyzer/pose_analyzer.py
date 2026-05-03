@@ -1,8 +1,8 @@
-"""Pose analysis engine using MediaPipe BlazePose.
+"""Pose analysis engine using MediaPipe PoseLandmarker (tasks API).
 
 This module provides the PoseAnalyzer class which extracts per-frame pose
 landmarks from a video file.  It uses OpenCV for frame-by-frame decoding
-and MediaPipe BlazePose for 33-landmark body-pose estimation.
+and MediaPipe's PoseLandmarker task for 33-landmark body-pose estimation.
 
 Requirements: 4.1, 4.3
 """
@@ -10,26 +10,30 @@ Requirements: 4.1, 4.3
 from __future__ import annotations
 
 import logging
+import os
 from typing import List
 
 import cv2
 import mediapipe as mp
+from mediapipe.tasks.python import BaseOptions
+from mediapipe.tasks.python.vision import (
+    PoseLandmarker,
+    PoseLandmarkerOptions,
+    RunningMode,
+)
 
-from backend.config import MEDIAPIPE_MODEL_COMPLEXITY
 from backend.models.feedback import FrameLandmarks
 
 logger = logging.getLogger(__name__)
 
+_MODEL_PATH = os.path.join(os.path.dirname(__file__), "pose_landmarker_lite.task")
+
 
 class PoseAnalyzer:
-    """Extracts per-frame pose landmarks from a video file using MediaPipe BlazePose.
+    """Extracts per-frame pose landmarks from a video file using MediaPipe PoseLandmarker.
 
     Frames where no pose is detected are silently skipped — only frames with
     a successful detection appear in the returned list.
-
-    The BlazePose model complexity is controlled by the
-    ``MEDIAPIPE_MODEL_COMPLEXITY`` configuration value (0 = lite, 1 = full,
-    2 = heavy).
     """
 
     def analyze_video(self, video_path: str) -> List[FrameLandmarks]:
@@ -50,29 +54,42 @@ class PoseAnalyzer:
         if not cap.isOpened():
             raise RuntimeError(f"Failed to open video file: {video_path}")
 
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
         results: List[FrameLandmarks] = []
 
-        mp_pose = mp.solutions.pose
-        with mp_pose.Pose(
-            static_image_mode=False,
-            model_complexity=MEDIAPIPE_MODEL_COMPLEXITY,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5,
-        ) as pose:
+        options = PoseLandmarkerOptions(
+            base_options=BaseOptions(model_asset_path=_MODEL_PATH),
+            running_mode=RunningMode.VIDEO,
+            num_poses=1,
+        )
+
+        with PoseLandmarker.create_from_options(options) as landmarker:
             frame_index = 0
             while True:
                 ret, frame = cap.read()
                 if not ret:
                     break
 
-                # MediaPipe expects RGB; OpenCV reads BGR.
+                # Convert BGR to RGB
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                pose_result = pose.process(rgb_frame)
 
-                if pose_result.pose_landmarks is not None:
+                # Create MediaPipe Image
+                mp_image = mp.Image(
+                    image_format=mp.ImageFormat.SRGB,
+                    data=rgb_frame,
+                )
+
+                # Calculate timestamp in milliseconds
+                timestamp_ms = int(frame_index * 1000 / fps)
+
+                # Detect pose
+                detection_result = landmarker.detect_for_video(mp_image, timestamp_ms)
+
+                if detection_result.pose_landmarks and len(detection_result.pose_landmarks) > 0:
+                    pose = detection_result.pose_landmarks[0]
                     landmarks = [
-                        (lm.x, lm.y, lm.z, lm.visibility)
-                        for lm in pose_result.pose_landmarks.landmark
+                        (lm.x, lm.y, lm.z, lm.visibility if hasattr(lm, 'visibility') else 0.9)
+                        for lm in pose
                     ]
                     results.append(
                         FrameLandmarks(

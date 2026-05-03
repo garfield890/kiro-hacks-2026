@@ -1,127 +1,85 @@
 """Human-readable feedback generation from scoring results.
 
-This module provides the ``FeedbackBuilder`` class which converts a raw
-``ScoringResult`` (numeric score, flagged joints, well-performed joints)
-into a ``FeedbackReport`` containing natural-language observations and
-actionable improvement suggestions.
-
-The builder guarantees that every report contains **at least one** positive
-observation and **at least one** improvement suggestion, regardless of the
-input.
-
-Requirements: 5.1, 5.2, 5.3
+Generates specific, data-driven feedback based on actual joint angle
+measurements and the detected exercise type. Each observation references
+the measured angle and what the ideal range should be.
 """
 
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from backend.models.feedback import FeedbackReport, ScoringResult
 
-# ---------------------------------------------------------------------------
-# Human-readable joint display names
-# ---------------------------------------------------------------------------
-_JOINT_DISPLAY_NAMES: Dict[str, str] = {
+_JOINT_NAMES: Dict[str, str] = {
     "left_knee": "left knee",
     "right_knee": "right knee",
     "left_hip": "left hip",
     "right_hip": "right hip",
     "left_elbow": "left elbow",
     "right_elbow": "right elbow",
-    "spine_alignment": "spine alignment",
+    "spine_alignment": "spine",
 }
 
-# ---------------------------------------------------------------------------
-# Per-joint positive / negative feedback templates
-# ---------------------------------------------------------------------------
-_POSITIVE_TEMPLATES: Dict[str, str] = {
-    "left_knee": "Your left knee angle was well controlled throughout the movement.",
-    "right_knee": "Your right knee angle was well controlled throughout the movement.",
-    "left_hip": "Your left hip maintained a good range of motion.",
-    "right_hip": "Your right hip maintained a good range of motion.",
-    "left_elbow": "Your left elbow positioning was solid and consistent.",
-    "right_elbow": "Your right elbow positioning was solid and consistent.",
-    "spine_alignment": "Your spine stayed well aligned during the exercise.",
-}
 
-_SUGGESTION_TEMPLATES: Dict[str, str] = {
-    "left_knee": "Your left knee angle is off — this puts unnecessary stress on the joint. Fix it before adding load.",
-    "right_knee": "Your right knee angle is off — this puts unnecessary stress on the joint. Fix it before adding load.",
-    "left_hip": "Your left hip range of motion is poor. Work on hip mobility drills before your next session.",
-    "right_hip": "Your right hip range of motion is poor. Work on hip mobility drills before your next session.",
-    "left_elbow": "Your left elbow is unstable throughout the movement. Lock in your arm path.",
-    "right_elbow": "Your right elbow is unstable throughout the movement. Lock in your arm path.",
-    "spine_alignment": "Your spine is not staying neutral — this is a fast track to a back injury. Prioritize core bracing.",
-}
+def _angle_feedback(joint: str, angle: float, lo: float, hi: float) -> Tuple[str, str]:
+    """Generate specific positive/negative feedback for a joint.
 
-# ---------------------------------------------------------------------------
-# Score-range feedback
-# ---------------------------------------------------------------------------
-_SCORE_RANGES: List[Tuple[int, int, str, str]] = [
-    # (min_score, max_score, positive_comment, suggestion_comment)
-    (
-        90, 100,
-        "Genuinely strong form — you clearly know what you're doing.",
-        "Stay disciplined. Even small lapses in consistency will show up over time.",
-    ),
-    (
-        80, 89,
-        "Solid form with room to tighten up.",
-        "You're close to excellent — focus on the flagged joints to push past 90.",
-    ),
-    (
-        60, 79,
-        "Passable form, but several joints need serious attention.",
-        "Slow down your reps significantly and prioritize control over speed or weight.",
-    ),
-    (
-        40, 59,
-        "Your form has significant issues that could lead to injury.",
-        "Drop the weight substantially and drill the movement pattern with bodyweight first.",
-    ),
-    (
-        20, 39,
-        "You attempted the exercise, but your form needs a lot of work.",
-        "Consider working with a coach or watching detailed form tutorials before continuing.",
-    ),
-    (
-        0, 19,
-        "You showed up and recorded yourself — that takes initiative.",
-        "Your form is far from safe. Start from scratch with bodyweight basics and build up slowly.",
-    ),
-]
+    Returns (positive_text, negative_text). One will be used based on
+    whether the joint is flagged or well-performed.
+    """
+    name = _JOINT_NAMES.get(joint, joint)
+    mid = (lo + hi) / 2
 
-# ---------------------------------------------------------------------------
-# Fallback messages (ensure the guarantee is always met)
-# ---------------------------------------------------------------------------
-_FALLBACK_POSITIVE = "You recorded yourself and checked your form — that's more than most people do."
-_FALLBACK_SUGGESTION = "There's real work to do here. Record again, compare side-by-side, and fix one joint at a time."
+    if "knee" in joint:
+        if angle < lo:
+            neg = f"Your {name} bent deeper than ideal (avg {angle:.0f}°, target {lo:.0f}–{hi:.0f}°). Try not going quite as low — stop just at or above parallel."
+        elif angle > hi:
+            neg = f"Your {name} didn't bend enough (avg {angle:.0f}°, target {lo:.0f}–{hi:.0f}°). Try to get a bit deeper on each rep for full range of motion."
+        else:
+            neg = f"Your {name} was slightly outside the target range (avg {angle:.0f}°, target {lo:.0f}–{hi:.0f}°)."
+        pos = f"Your {name} tracked well at {angle:.0f}° (target {lo:.0f}–{hi:.0f}°)."
+
+    elif "hip" in joint:
+        if angle < lo:
+            neg = f"Your {name} flexed more than ideal (avg {angle:.0f}°, target {lo:.0f}–{hi:.0f}°). Try keeping your chest a bit more upright and bracing your core."
+        elif angle > hi:
+            neg = f"Your {name} could hinge more (avg {angle:.0f}°, target {lo:.0f}–{hi:.0f}°). Push your hips back a bit further to engage the posterior chain."
+        else:
+            neg = f"Your {name} was slightly outside the target range (avg {angle:.0f}°, target {lo:.0f}–{hi:.0f}°)."
+        pos = f"Good hip position — {name} averaged {angle:.0f}° (target {lo:.0f}–{hi:.0f}°)."
+
+    elif "elbow" in joint:
+        if angle < lo:
+            neg = f"Your {name} bent more than needed (avg {angle:.0f}°, target {lo:.0f}–{hi:.0f}°). Try controlling the movement a bit more on the way down."
+        elif angle > hi:
+            neg = f"Your {name} could bend more (avg {angle:.0f}°, target {lo:.0f}–{hi:.0f}°). Try to get a fuller range of motion on each rep."
+        else:
+            neg = f"Your {name} was slightly outside the target range (avg {angle:.0f}°, target {lo:.0f}–{hi:.0f}°)."
+        pos = f"Your {name} moved through a solid range at {angle:.0f}° (target {lo:.0f}–{hi:.0f}°)."
+
+    elif "spine" in joint:
+        if angle < lo:
+            neg = f"Your spine was a bit too upright for this exercise (avg {angle:.0f}°, target {lo:.0f}–{hi:.0f}°). A slight forward lean is okay here."
+        elif angle > hi:
+            neg = f"Your spine leaned forward more than ideal (avg {angle:.0f}°, target {lo:.0f}–{hi:.0f}°). Focus on bracing your core and keeping a more neutral back."
+        else:
+            neg = f"Your spine alignment was slightly off (avg {angle:.0f}°, target {lo:.0f}–{hi:.0f}°)."
+        pos = f"Spine alignment looked good at {angle:.0f}° (target {lo:.0f}–{hi:.0f}°)."
+
+    else:
+        neg = f"Your {name} was outside the ideal range (avg {angle:.0f}°)."
+        pos = f"Your {name} was within range at {angle:.0f}°."
+
+    return pos, neg
 
 
 class FeedbackBuilder:
-    """Assembles a ``FeedbackReport`` from a ``ScoringResult``.
+    """Builds specific, data-driven feedback from scoring results."""
 
-    The builder translates numeric scores, flagged joints, and
-    well-performed joints into human-readable text.  It guarantees that
-    every returned ``FeedbackReport`` contains at least one positive
-    observation and at least one improvement suggestion.
-    """
+    def build(self, result: ScoringResult, exercise_name: str = "Unknown Exercise") -> FeedbackReport:
+        """Build feedback with actual angle measurements in each observation."""
 
-    def build(self, result: ScoringResult) -> FeedbackReport:
-        """Build a human-readable feedback report from a scoring result.
-
-        If no movement was detected, returns score 0 with only a warning
-        and minimal placeholder text (no real feedback).
-
-        Args:
-            result: The ``ScoringResult`` produced by ``FormScorer.score``.
-
-        Returns:
-            A ``FeedbackReport`` with ``form_score``, a non-empty list of
-            ``positive_observations``, and a non-empty list of
-            ``improvement_suggestions``.
-        """
-        # --- No movement: score 0, warning only, no real feedback ---
         if result.low_movement:
             return FeedbackReport(
                 form_score=0,
@@ -137,51 +95,85 @@ class FeedbackBuilder:
         positives: List[str] = []
         suggestions: List[str] = []
 
-        # --- Score-range commentary ---
-        score_positive, score_suggestion = self._score_range_feedback(result.form_score)
-        positives.append(score_positive)
-        suggestions.append(score_suggestion)
+        # --- Score-level summary ---
+        score = result.form_score
+        num_flagged = len(result.flagged_joints)
+        num_good = len(result.well_performed_joints)
 
-        # --- Joint-specific observations ---
+        if score >= 90:
+            positives.append(f"Excellent {exercise_name} form — {score}/100. Keep it up.")
+        elif score >= 70:
+            if num_flagged == 0:
+                positives.append(f"Good {exercise_name} at {score}/100 — all joints in range. Tighten up consistency to push higher.")
+            elif num_flagged == 1:
+                positives.append(f"Solid {exercise_name} at {score}/100 — one area to focus on below.")
+            else:
+                positives.append(f"Decent {exercise_name} at {score}/100 — a couple of things to clean up.")
+        elif score >= 40:
+            if num_flagged == 0:
+                positives.append(f"Your {exercise_name} scored {score}/100 — all joints in range. Consistency between reps is what's holding the score back.")
+            elif num_flagged == 1:
+                suggestions.append(f"Your {exercise_name} scored {score}/100 — one area to fix below.")
+            else:
+                suggestions.append(f"Your {exercise_name} scored {score}/100 — {num_flagged} areas need attention. See the specific fixes below.")
+        else:
+            suggestions.append(f"Your {exercise_name} scored {score}/100. Check the specific areas below — working on them one at a time will make a big difference.")
+
+        # --- Joint-specific feedback with actual numbers ---
+        from backend.analyzer.exercise_profiles import EXERCISE_PROFILES
+        ideal_ranges = EXERCISE_PROFILES.get(exercise_name.lower().replace(" ", "_").replace("-", "_"), {})
+
         for joint in result.well_performed_joints:
-            template = _POSITIVE_TEMPLATES.get(joint)
-            if template:
-                positives.append(template)
+            angle = result.angle_summaries.get(joint)
+            if angle is not None and joint in ideal_ranges:
+                lo, hi = ideal_ranges[joint]
+                pos, _ = _angle_feedback(joint, angle, lo, hi)
+                positives.append(pos)
 
         for joint in result.flagged_joints:
-            template = _SUGGESTION_TEMPLATES.get(joint)
-            if template:
-                suggestions.append(template)
+            angle = result.angle_summaries.get(joint)
+            if angle is not None and joint in ideal_ranges:
+                lo, hi = ideal_ranges[joint]
+                _, neg = _angle_feedback(joint, angle, lo, hi)
+                suggestions.append(neg)
 
-        # --- Guarantee at least one of each (defensive fallback) ---
+        # --- Consistency feedback ---
+        # If we have angle summaries, check for left-right imbalances
+        for side_pair in [("left_knee", "right_knee"), ("left_hip", "right_hip"), ("left_elbow", "right_elbow")]:
+            left_angle = result.angle_summaries.get(side_pair[0])
+            right_angle = result.angle_summaries.get(side_pair[1])
+            if left_angle is not None and right_angle is not None:
+                diff = abs(left_angle - right_angle)
+                joint_type = side_pair[0].split("_")[1]
+                if diff > 15:
+                    suggestions.append(
+                        f"Your left and right {joint_type} differ by {diff:.0f}° — "
+                        f"this imbalance increases injury risk. Focus on moving both sides evenly."
+                    )
+                elif diff > 8:
+                    suggestions.append(
+                        f"Slight {joint_type} imbalance ({diff:.0f}° difference between sides). "
+                        f"Try to keep both sides more symmetrical."
+                    )
+
+        # --- If all joints are good but score is still low, explain why ---
+        if num_flagged == 0 and score < 80 and not any("consistency" in s.lower() for s in suggestions):
+            suggestions.append(
+                "All your joint angles were in range, but your rep-to-rep consistency "
+                "brought the score down. Focus on making each rep look identical — "
+                "same depth, same speed, same path."
+            )
+
+        # --- Fallbacks ---
         if not positives:
-            positives.append(_FALLBACK_POSITIVE)
+            positives.append("You took the time to record and check your form — that's a great habit to build.")
         if not suggestions:
-            suggestions.append(_FALLBACK_SUGGESTION)
+            suggestions.append("Looking solid — keep recording regularly to track your progress.")
 
         return FeedbackReport(
             form_score=result.form_score,
             positive_observations=positives,
             improvement_suggestions=suggestions,
             warning=None,
+            detected_exercise=exercise_name,
         )
-
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
-
-    def _score_range_feedback(self, score: int) -> Tuple[str, str]:
-        """Return a (positive, suggestion) pair based on the score range.
-
-        Args:
-            score: The form score in [0, 100].
-
-        Returns:
-            A tuple of (positive_comment, suggestion_comment).
-        """
-        for min_score, max_score, positive, suggestion in _SCORE_RANGES:
-            if min_score <= score <= max_score:
-                return positive, suggestion
-
-        # Should never happen if _SCORE_RANGES covers [0, 100], but be safe.
-        return _FALLBACK_POSITIVE, _FALLBACK_SUGGESTION

@@ -1,68 +1,103 @@
 import { Link } from 'react-router-dom'
+import heroBg from '../assets/gym-opt.jpg'
+import recordImg from '../assets/record.jpg'
+import analyzeImg from '../assets/analyze.jpg'
+import improveImg from '../assets/improve.jpg'
 
 export default function HomePage() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 text-center">
-      {/* Hero */}
-      <div className="max-w-2xl space-y-6">
-        <span className="text-7xl">🏋️‍♂️</span>
+    <div className="relative flex flex-1 flex-col">
+      {/* Background image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${heroBg})` }}
+      >
+        <div className="absolute inset-0 bg-black/75" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black" />
+      </div>
 
-        <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-          AI-Powered
-          <br />
-          <span className="bg-gradient-to-r from-emerald-400 to-blue-500 bg-clip-text text-transparent">
-            Gym Form Checker
-          </span>
-        </h1>
+      {/* Hero content */}
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-20 text-center">
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'radial-gradient(ellipse 70% 60% at 50% 45%, rgba(0,0,0,0.7) 0%, transparent 100%)'
+        }} />
 
-        <p className="mx-auto max-w-md text-base text-zinc-400 leading-relaxed">
-          Record yourself exercising and get instant feedback on your form.
-          Our AI analyzes your joint angles, posture, and movement to help
-          you train safer and more effectively.
-        </p>
+        <div className="relative max-w-2xl space-y-8">
+          {/* Emoji — fades in and scales up */}
+          <span className="text-8xl block drop-shadow-[0_4px_16px_rgba(0,0,0,0.8)] animate-scale-in">🏋️‍♂️</span>
 
-        <div className="flex flex-col items-center gap-3 pt-2">
-          <Link
-            to="/check"
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-500 transition-all hover:shadow-emerald-500/30 hover:-translate-y-0.5"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
-            </svg>
-            Start Checking Your Form
-          </Link>
-          <span className="text-xs text-zinc-500">No sign-up required • Works in your browser</span>
+          {/* Title — fades in up with slight delay */}
+          <h1 className="drop-shadow-[0_3px_12px_rgba(0,0,0,0.7)] animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            <span className="block text-4xl sm:text-6xl font-extralight tracking-[0.2em] text-white uppercase font-[family-name:var(--font-display)]">
+              AI-Powered
+            </span>
+            <span className="block text-4xl sm:text-6xl font-extrabold tracking-tight bg-gradient-to-b from-emerald-300 to-emerald-500 bg-clip-text text-transparent mt-1 font-[family-name:var(--font-heading)]">
+              Gym Form Checker
+            </span>
+          </h1>
+
+          {/* Description — fades in up, more delay */}
+          <p className="mx-auto max-w-lg text-base sm:text-lg font-normal text-white/90 leading-relaxed tracking-wide drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            Record yourself exercising and get instant feedback on your form.
+            Our AI analyzes your joint angles, posture, and movement to help
+            you train safer and more effectively.
+          </p>
+
+          {/* CTA — fades in up, most delay */}
+          <div className="flex flex-col items-center gap-4 pt-4 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+            <Link
+              to="/check"
+              className="inline-flex items-center gap-3 rounded-2xl bg-gradient-to-b from-emerald-500 to-emerald-700 px-10 py-4 text-lg font-bold uppercase tracking-wider text-white no-underline shadow-[0_1px_0_0_rgba(255,255,255,0.15)_inset,0_4px_16px_rgba(0,0,0,0.5),0_2px_4px_rgba(0,0,0,0.4)] hover:from-emerald-400 hover:to-emerald-600 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_1px_0_0_rgba(255,255,255,0.2)_inset,0_8px_24px_rgba(0,0,0,0.5)] active:translate-y-0"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
+              </svg>
+              Start Now
+            </Link>
+            <span className="text-sm font-normal text-white/60 tracking-widest uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              No sign-up required · Record live or upload a video
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Features */}
-      <div className="mt-16 grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
-        <FeatureCard
-          icon="📹"
-          title="Record"
-          description="Open your camera and record your exercise with a 10-second countdown."
-        />
-        <FeatureCard
-          icon="🤖"
-          title="Analyze"
-          description="AI detects 33 body landmarks and scores your joint angles frame by frame."
-        />
-        <FeatureCard
-          icon="📊"
-          title="Improve"
-          description="Get a detailed score with specific feedback on what to fix."
-        />
+      {/* Feature cards — staggered slide-in from bottom */}
+      <div className="relative z-10 px-6 pb-20">
+        <p className="text-center text-xs font-medium uppercase tracking-[0.25em] text-white/50 mb-8 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)] animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          How it works
+        </p>
+        <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-6 sm:grid-cols-3">
+          <FeatureCard image={recordImg} step="01" title="Record" delay="0.45s"
+            description="Open your camera and record your exercise with a 10-second countdown to get into position." />
+          <FeatureCard image={analyzeImg} step="02" title="Analyze" delay="0.55s"
+            description="AI detects 33 body landmarks and scores your joint angles across every frame." />
+          <FeatureCard image={improveImg} step="03" title="Improve" delay="0.65s"
+            description="Get a detailed score with specific, constructive feedback on what to improve." />
+        </div>
       </div>
     </div>
   )
 }
 
-function FeatureCard({ icon, title, description }) {
+function FeatureCard({ image, step, title, description, delay }) {
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 text-left">
-      <span className="text-2xl">{icon}</span>
-      <h3 className="mt-2 text-sm font-semibold text-white">{title}</h3>
-      <p className="mt-1 text-xs text-zinc-400 leading-relaxed">{description}</p>
+    <div
+      className="group rounded-2xl overflow-hidden bg-black/80 border border-white/10 shadow-[0_1px_0_0_rgba(255,255,255,0.05)_inset,0_4px_12px_rgba(0,0,0,0.5)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_1px_0_0_rgba(255,255,255,0.08)_inset,0_12px_32px_rgba(0,0,0,0.6)] animate-slide-in-bottom"
+      style={{ animationDelay: delay }}
+    >
+      <div className="relative h-40 overflow-hidden">
+        <img
+          src={image}
+          alt={title}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/90" />
+      </div>
+      <div className="p-6 pt-4">
+        <span className="text-2xl font-extralight text-zinc-500 tracking-wider">{step}</span>
+        <h3 className="text-lg font-bold text-white tracking-tight mt-1 font-[family-name:var(--font-heading)]">{title}</h3>
+        <p className="mt-2 text-sm font-normal text-zinc-300 leading-relaxed">{description}</p>
+      </div>
     </div>
   )
 }

@@ -4,3 +4,4 @@ python-multipart==0.0.20
 mediapipe==0.10.21
 opencv-python-headless==4.11.0.86
 pydantic==2.11.3
+scikit-learn==1.6.1

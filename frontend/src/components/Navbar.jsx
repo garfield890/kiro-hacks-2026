@@ -1,34 +1,43 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import Logo from './Logo'
 
 export default function Navbar() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const isHome = location.pathname === '/'
 
-  const linkClass = (path) =>
-    `text-sm font-medium transition-colors ${
-      location.pathname === path
-        ? 'text-white'
-        : 'text-zinc-400 hover:text-white'
-    }`
+  const linkClass = (path) => {
+    const isActive = location.pathname === path
+    return [
+      'text-sm font-medium transition-all rounded-lg px-3 py-1.5',
+      isActive
+        ? 'text-white underline underline-offset-4 decoration-emerald-400 decoration-2'
+        : 'text-zinc-300 no-underline hover:text-white hover:bg-white/10',
+    ].join(' ')
+  }
+
+  const handleCheckFormClick = (e) => {
+    e.preventDefault()
+    // Always navigate fresh — forces remount via location.key
+    navigate('/check', { replace: location.pathname === '/check' })
+  }
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <span className="text-2xl">🏋️</span>
-          <span className="text-base font-bold text-white tracking-tight">
+    <nav className={`w-full border-b transition-colors ${
+      isHome
+        ? 'bg-black/60 border-white/10'
+        : 'bg-zinc-900 border-zinc-950 shadow-[0_1px_0_0_rgba(255,255,255,0.04)]'
+    }`}>
+      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6 sm:px-8">
+        <Link to="/" className="flex items-center gap-2.5 no-underline">
+          <Logo size={28} />
+          <span className="text-base font-bold text-white tracking-tight font-[family-name:var(--font-heading)]">
             FormCheck
           </span>
         </Link>
-
-        {/* Links */}
-        <div className="flex items-center gap-6">
-          <Link to="/" className={linkClass('/')}>
-            Home
-          </Link>
-          <Link to="/check" className={linkClass('/check')}>
-            Check Form
-          </Link>
+        <div className="flex items-center gap-2">
+          <Link to="/" className={linkClass('/')}>Home</Link>
+          <a href="/check" onClick={handleCheckFormClick} className={linkClass('/check')}>Check Form</a>
         </div>
       </div>
     </nav>

@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev:frontend": "npm run dev --prefix frontend",
-    "dev:backend": "uvicorn backend.main:app --reload --reload-dir backend --port 8000",
+    "dev:backend": ".venv/bin/uvicorn backend.main:app --reload --reload-dir backend --port 8000",
     "dev": "npm run dev:frontend"
   }
 }

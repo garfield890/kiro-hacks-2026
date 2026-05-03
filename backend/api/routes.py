@@ -19,6 +19,8 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from backend.analyzer.feedback_builder import FeedbackBuilder
 from backend.analyzer.form_scorer import FormScorer
 from backend.analyzer.pose_analyzer import PoseAnalyzer
+from backend.analyzer.exercise_classifier import ExerciseClassifier
+from backend.analyzer.exercise_profiles import EXERCISE_PROFILES, EXERCISE_DISPLAY_NAMES
 from backend.config import MIN_CLIP_DURATION_SEC, TEMP_UPLOAD_DIR
 from backend.models.feedback import FeedbackReport
 from backend.validation.video_validator import VideoValidationError, VideoValidator
@@ -31,6 +33,7 @@ _validator = VideoValidator()
 _pose_analyzer = PoseAnalyzer()
 _form_scorer = FormScorer()
 _feedback_builder = FeedbackBuilder()
+_exercise_classifier = ExerciseClassifier()
 
 
 def _getVideoDuration(file_path: str) -> float:
@@ -114,8 +117,31 @@ async def analyze(video_clip: UploadFile = File(...)) -> Dict[str, Any]:
                 detail="No human pose was detected in the video. Please ensure you are visible in the frame.",
             )
 
-        scoring_result = _form_scorer.score(frames)
-        report = _feedback_builder.build(scoring_result)
+        # Classify the exercise type
+        # First do a quick movement check with default ranges — if no
+        # movement, skip the classifier entirely.
+        quick_result = _form_scorer.score(frames)
+        print(f"[ROUTE] Frames: {len(frames)}, low_movement: {quick_result.low_movement}, score: {quick_result.form_score}")
+        if quick_result.low_movement:
+            print("[ROUTE] Low movement detected — skipping classifier")
+            exercise_name = "No Exercise Detected"
+            report = _feedback_builder.build(quick_result, exercise_name=exercise_name)
+            return report.model_dump()
+
+        # Enough movement — classify the exercise
+        print("[ROUTE] Enough movement — running classifier")
+        exercise_type = _exercise_classifier.classify(frames)
+        if exercise_type == "unknown":
+            exercise_name = "No Exercise Detected"
+            ideal_ranges = EXERCISE_PROFILES["unknown"]
+        else:
+            exercise_name = EXERCISE_DISPLAY_NAMES.get(exercise_type, exercise_type)
+            ideal_ranges = EXERCISE_PROFILES.get(exercise_type, EXERCISE_PROFILES["unknown"])
+
+        # Re-score with exercise-specific ranges
+        scoring_result = _form_scorer.score(frames, ideal_ranges=ideal_ranges)
+
+        report = _feedback_builder.build(scoring_result, exercise_name=exercise_name)
 
         return report.model_dump()
 

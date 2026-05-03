@@ -52,7 +52,7 @@ MAX_VIDEO_SIZE_MB: int = _getIntEnv("MAX_VIDEO_SIZE_MB", 100)
 MIN_CLIP_DURATION_SEC: int = _getIntEnv("MIN_CLIP_DURATION_SEC", 3)
 """Minimum clip duration in seconds — shorter clips are rejected."""
 
-MAX_CLIP_DURATION_SEC: int = _getIntEnv("MAX_CLIP_DURATION_SEC", 120)
+MAX_CLIP_DURATION_SEC: int = _getIntEnv("MAX_CLIP_DURATION_SEC", 60)
 """Maximum recording duration in seconds."""
 
 MEDIAPIPE_MODEL_COMPLEXITY: int = _getIntEnv("MEDIAPIPE_MODEL_COMPLEXITY", 1)

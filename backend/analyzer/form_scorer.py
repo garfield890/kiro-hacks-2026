@@ -185,37 +185,41 @@ class FormScorer:
     The scorer evaluates six joint angles (left/right knee, hip, elbow) plus
     spine alignment across all provided frames.  Each joint receives a
     graduated score based on how far its mean angle deviates from the ideal
-    range.  The overall ``form_score`` is a weighted average that penalises
-    deviations harshly — only genuinely good form scores above 80.
+    range.  The overall ``form_score`` is a weighted average with a moderate
+    curve — good form scores well, but consistency matters too.
 
-    Scoring is intentionally strict: joints inside the ideal range score
+    Scoring approach: joints inside the ideal range score
     100 %, joints slightly outside lose points proportionally, and joints
     severely outside the range (≥ 30° deviation) score 0 % for that joint.
     Frame-to-frame consistency (low standard deviation) provides a small
     bonus; high variance applies a penalty.
     """
 
-    def score(self, frames: List[FrameLandmarks]) -> ScoringResult:
+    def score(self, frames: List[FrameLandmarks], ideal_ranges: Dict[str, Tuple[float, float]] = None) -> ScoringResult:
         """Score exercise form from a sequence of pose-landmark frames.
 
         Args:
             frames: Non-empty list of ``FrameLandmarks`` produced by
                 ``PoseAnalyzer.analyze_video``.
+            ideal_ranges: Optional exercise-specific ideal angle ranges.
+                Falls back to the default generic ranges if not provided.
 
         Returns:
             A ``ScoringResult`` with ``form_score`` in [0, 100], lists of
             flagged / well-performed joints, and per-joint mean angles.
         """
+        ranges = ideal_ranges if ideal_ranges is not None else _IDEAL_RANGES
+
         if not frames:
             return ScoringResult(
                 form_score=0,
-                flagged_joints=list(_IDEAL_RANGES.keys()),
+                flagged_joints=list(ranges.keys()),
                 well_performed_joints=[],
                 angle_summaries={},
             )
 
         # Accumulate per-joint angle values across all frames.
-        angle_series: Dict[str, List[float]] = {name: [] for name in _IDEAL_RANGES}
+        angle_series: Dict[str, List[float]] = {name: [] for name in ranges}
 
         for frame in frames:
             lm = frame.landmarks
@@ -248,7 +252,7 @@ class FormScorer:
             mean_angle = sum(series) / len(series)
             angle_summaries[joint_name] = round(mean_angle, 2)
 
-            lo, hi = _IDEAL_RANGES[joint_name]
+            lo, hi = ranges[joint_name]
 
             # --- Graduated deviation penalty ---
             if lo <= mean_angle <= hi:
@@ -276,16 +280,15 @@ class FormScorer:
             else:
                 flagged.append(joint_name)
 
-        # Overall score = mean of per-joint scores, then apply a harshness
-        # curve (square root scaling inverted — we square the normalised
-        # score so mediocre joints drag the total down aggressively).
+        # Overall score = mean of per-joint scores with a moderate curve
+        # that rewards consistency without being overly punishing.
         if joint_scores:
             avg = sum(joint_scores) / len(joint_scores)
-            # Squaring the 0-1 normalised average makes the curve harsh:
-            # 0.7 avg → 0.49 → score 49, 0.9 avg → 0.81 → score 81
+            # Moderate curve: x^1.4 instead of x^2
+            # 0.7 avg → 0.59 → score 59, 0.9 avg → 0.86 → score 86
             normalised = avg / 100.0
-            harsh_score = (normalised ** 2) * 100.0
-            form_score = max(0, min(100, int(round(harsh_score))))
+            curved_score = (normalised ** 1.4) * 100.0
+            form_score = max(0, min(100, int(round(curved_score))))
         else:
             form_score = 0
 
@@ -294,8 +297,8 @@ class FormScorer:
         # A frame pair "has movement" if the sum of absolute angle deltas
         # across all joints exceeds a threshold.  If fewer than 75 % of
         # frame pairs show movement, the video is flagged as low-movement.
-        _FRAME_MOVEMENT_THRESHOLD = 5.0   # degrees total across all joints
-        _MIN_MOVING_RATIO = 0.75          # need 75 % of frames moving
+        _FRAME_MOVEMENT_THRESHOLD = 2.0   # degrees total across all joints
+        _MIN_MOVING_RATIO = 0.40          # need 40 % of frames moving
         low_movement = False
 
         if len(frames) >= 5:

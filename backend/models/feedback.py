@@ -42,6 +42,10 @@ class FeedbackReport(BaseModel):
         default=None,
         description="Optional warning message, e.g. when no exercise movement is detected",
     )
+    detected_exercise: Optional[str] = Field(
+        default=None,
+        description="The exercise type detected by the classifier",
+    )
 
 
 @dataclass
