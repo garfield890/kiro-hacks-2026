@@ -1,5 +1,4 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import Logo from './Logo'
 
 export default function Navbar() {
   const location = useLocation()
@@ -30,9 +29,9 @@ export default function Navbar() {
     }`}>
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6 sm:px-8">
         <Link to="/" className="flex items-center gap-2.5 no-underline">
-          <Logo size={28} />
+          <span className="text-2xl">🏋️</span>
           <span className="text-base font-bold text-white tracking-tight font-[family-name:var(--font-heading)]">
-            FormCheck
+            GymBro
           </span>
         </Link>
         <div className="flex items-center gap-2">

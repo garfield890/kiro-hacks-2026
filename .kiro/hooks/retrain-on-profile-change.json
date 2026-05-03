@@ -1,0 +1,13 @@
+{
+  "name": "Retrain Classifier on Profile Change",
+  "version": "1.0.0",
+  "description": "When exercise profiles are edited, remind to retrain the ML classifier model.",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["backend/analyzer/exercise_profiles.py"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Exercise profiles were just modified. The ML classifier model needs to be retrained to reflect the new profiles. Run: .venv/bin/python -m backend.analyzer.train_classifier"
+  }
+}

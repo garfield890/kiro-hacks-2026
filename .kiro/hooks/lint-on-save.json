@@ -1,13 +1,13 @@
 {
-  "name": "Lint on Save",
+  "name": "Lint Frontend on Save",
   "version": "1.0.0",
-  "description": "Run ESLint automatically whenever a TypeScript or JavaScript file is saved.",
+  "description": "Run ESLint on the frontend whenever a JSX or JS file is saved.",
   "when": {
     "type": "fileEdited",
-    "patterns": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"]
+    "patterns": ["frontend/**/*.js", "frontend/**/*.jsx"]
   },
   "then": {
     "type": "runCommand",
-    "command": "npm run lint"
+    "command": "npm run lint --prefix frontend"
   }
 }

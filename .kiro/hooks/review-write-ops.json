@@ -1,13 +1,13 @@
 {
   "name": "Review Write Operations",
   "version": "1.0.0",
-  "description": "Before any file write, remind the agent to verify the change follows project coding standards and does not introduce secrets or unsafe patterns.",
+  "description": "Before any file write, verify the change follows project coding standards, uses constructive feedback tone, and does not introduce secrets.",
   "when": {
     "type": "preToolUse",
     "toolTypes": ["write"]
   },
   "then": {
     "type": "askAgent",
-    "prompt": "Before applying this write operation, verify: (1) the code follows the project style guide in .kiro/steering/project.md, (2) no secrets or credentials are being written to the file, (3) any user inputs are validated and sanitized."
+    "prompt": "Before applying this write operation, verify: (1) the code follows the project style guide in .kiro/steering/project.md, (2) no secrets or credentials are being written, (3) any user-facing text uses a constructive tone (not harsh or discouraging), (4) Python uses 4-space indent and JS uses 2-space indent."
   }
 }

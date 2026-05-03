@@ -23,16 +23,13 @@ export default function HomePage() {
         }} />
 
         <div className="relative max-w-2xl space-y-8">
-          {/* Emoji — fades in and scales up */}
-          <span className="text-8xl block drop-shadow-[0_4px_16px_rgba(0,0,0,0.8)] animate-scale-in">🏋️‍♂️</span>
-
-          {/* Title — fades in up with slight delay */}
-          <h1 className="drop-shadow-[0_3px_12px_rgba(0,0,0,0.7)] animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          {/* Title — fades in up */}
+          <h1 className="drop-shadow-[0_3px_12px_rgba(0,0,0,0.7)] animate-fade-in-up">
             <span className="block text-4xl sm:text-6xl font-extralight tracking-[0.2em] text-white uppercase font-[family-name:var(--font-display)]">
               AI-Powered
             </span>
             <span className="block text-4xl sm:text-6xl font-extrabold tracking-tight bg-gradient-to-b from-emerald-300 to-emerald-500 bg-clip-text text-transparent mt-1 font-[family-name:var(--font-heading)]">
-              Gym Form Checker
+              GymBro
             </span>
           </h1>
 

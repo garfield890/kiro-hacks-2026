@@ -1,12 +1,12 @@
 {
-  "name": "Run Tests After Task",
+  "name": "Verify Backend After Task",
   "version": "1.0.0",
-  "description": "Automatically run the test suite after a spec task is marked completed to catch regressions early.",
+  "description": "After a spec task completes, verify the backend imports cleanly to catch broken dependencies early.",
   "when": {
     "type": "postTaskExecution"
   },
   "then": {
     "type": "runCommand",
-    "command": "npm test -- --run"
+    "command": ".venv/bin/python -c 'from backend.api.routes import router; print(\"Backend OK\")'"
   }
 }

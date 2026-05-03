@@ -1,70 +1,58 @@
 ---
 inclusion: fileMatch
-fileMatchPattern: "src/api/**"
+fileMatchPattern: "backend/api/**"
 ---
 
 # API Conventions
 
-## REST Endpoint Structure
-- Base path: `/api/v1`
-- Resources use plural nouns: `/api/v1/users`, `/api/v1/orders`
-- Nested resources: `/api/v1/users/:userId/orders`
-
-## HTTP Methods
-- `GET` — read/list resources (never mutate state)
-- `POST` — create a new resource
-- `PUT` — full replacement of a resource
-- `PATCH` — partial update of a resource
-- `DELETE` — remove a resource
+## Endpoints
+- `POST /api/analyze` — Upload a video clip for form analysis
+  - Accepts: `multipart/form-data` with field `video_clip`
+  - Returns: `FeedbackReport` JSON
+  - Validates: MIME type, file size (100 MB max), clip duration (3–60s)
 
 ## Response Shape
-All responses follow this envelope:
 
+Success (200):
 ```json
 {
-  "data": { },
-  "meta": {
-    "requestId": "uuid",
-    "timestamp": "ISO8601"
-  },
-  "error": null
+  "form_score": 78,
+  "positive_observations": ["Your left knee tracked well at 113°..."],
+  "improvement_suggestions": ["Your spine leaned forward more than ideal..."],
+  "warning": null,
+  "detected_exercise": "Squat"
 }
 ```
 
-On error:
+Validation error (400):
 ```json
-{
-  "data": null,
-  "meta": { "requestId": "uuid", "timestamp": "ISO8601" },
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Human-readable description",
-    "details": []
-  }
-}
+{ "detail": "Unsupported video format: image/png..." }
 ```
 
-## Status Codes
-- `200` OK
-- `201` Created
-- `204` No Content (successful DELETE)
-- `400` Bad Request (validation failure)
-- `401` Unauthorized
-- `403` Forbidden
-- `404` Not Found
-- `409` Conflict
-- `500` Internal Server Error
-
-## Pagination
-List endpoints accept `?page=1&pageSize=20` and return:
+Too short (422):
 ```json
-{
-  "data": [],
-  "meta": {
-    "page": 1,
-    "pageSize": 20,
-    "total": 100,
-    "totalPages": 5
-  }
-}
+{ "detail": "Video clip is too short (1.2s). Minimum duration is 3 seconds." }
 ```
+
+Server error (500):
+```json
+{ "detail": "An unexpected error occurred during analysis: ..." }
+```
+
+## Analysis Pipeline
+1. Validate video (format, size)
+2. Write to temp file, check duration
+3. Run CLAHE preprocessing on each frame
+4. Extract pose landmarks with MediaPipe
+5. Quick movement check — if low movement, return early with warning
+6. Classify exercise type with ML model
+7. Score form using exercise-specific ideal angle ranges
+8. Build constructive feedback report
+9. Clean up temp file
+
+## Configuration (Environment Variables)
+- `MAX_VIDEO_SIZE_MB` (default: 100)
+- `MIN_CLIP_DURATION_SEC` (default: 3)
+- `MAX_CLIP_DURATION_SEC` (default: 60)
+- `MEDIAPIPE_MODEL_COMPLEXITY` (default: 1)
+- `TEMP_UPLOAD_DIR` (default: /tmp)

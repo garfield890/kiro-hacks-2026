@@ -1,13 +1,13 @@
 {
-  "name": "Security Check on Auth Files",
+  "name": "Security Check on Config Files",
   "version": "1.0.0",
-  "description": "When an auth-related file is edited, prompt the agent to review for common security issues.",
+  "description": "When config or environment-related files are edited, check for hardcoded secrets.",
   "when": {
     "type": "fileEdited",
-    "patterns": ["**/auth/**", "**/middleware/**", "**/*auth*", "**/*token*", "**/*password*"]
+    "patterns": ["**/config.py", "**/.env*", "**/settings/**"]
   },
   "then": {
     "type": "askAgent",
-    "prompt": "An authentication or security-related file was just edited. Please review the changes for: (1) hardcoded secrets or credentials, (2) missing input validation, (3) insecure token handling, (4) missing rate limiting on sensitive endpoints, (5) any deviation from the security guidelines in .kiro/steering/project.md."
+    "prompt": "A configuration file was just edited. Please verify: (1) no API keys, passwords, or secrets are hardcoded, (2) all sensitive values use environment variables, (3) defaults are safe for development use."
   }
 }

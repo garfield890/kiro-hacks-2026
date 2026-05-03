@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.api.routes import router as api_router
 
 app = FastAPI(
-    title="Gym Form Checker",
+    title="GymBro",
     description="AI-assisted exercise form analysis",
     version="0.1.0",
 )

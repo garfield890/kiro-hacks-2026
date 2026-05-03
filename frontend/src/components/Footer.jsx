@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import Logo from './Logo'
 
 export default function Footer() {
   return (
@@ -10,9 +9,9 @@ export default function Footer() {
           {/* Brand + about */}
           <div className="space-y-4">
             <div className="flex items-center gap-2.5">
-              <Logo size={24} />
+              <span className="text-xl">🏋️</span>
               <span className="text-sm font-bold text-white tracking-tight font-[family-name:var(--font-heading)]">
-                FormCheck
+                GymBro
               </span>
             </div>
             <p className="text-xs font-light text-zinc-500 leading-relaxed max-w-xs">
@@ -65,7 +64,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-[11px] text-zinc-600">
-            © {new Date().getFullYear()} FormCheck · Built with FastAPI, MediaPipe & React
+            © {new Date().getFullYear()} GymBro · Built with FastAPI, MediaPipe & React
           </p>
           <div className="flex items-center gap-4">
             <Link to="/check" className="text-[11px] text-zinc-500 hover:text-white transition-colors no-underline">
